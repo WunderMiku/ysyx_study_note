@@ -17,6 +17,7 @@
 #include <cpu/cpu.h>
 #include <readline/readline.h>
 #include <readline/history.h>
+#include <memory/vaddr.h>
 #include "sdb.h"
 #include <errno.h>
 #include <stdint.h>
@@ -62,6 +63,8 @@ static int cmd_si(char *args);
 
 static int cmd_info(char *args);
 
+static int cmd_x(char *args);
+
 static struct {
   const char *name;
   const char *description;
@@ -71,7 +74,8 @@ static struct {
   { "c", "Continue the execution of the program", cmd_c },
   { "q", "Exit NEMU", cmd_q },
   { "si", "Execute N instructions step by step, N default 1", cmd_si},
-  { "info", "Print information, r: register status, w: watchpoint information", cmd_info}
+  { "info", "Print information, r: register status, w: watchpoint information", cmd_info},
+  {"x", "Scan memory", cmd_x}
 
   /* TODO: Add more commands */
 
@@ -139,11 +143,80 @@ static int cmd_info(char *args) {
       isa_reg_display();
     } else 
     if (strcmp(arg, "w") == 0) {
+      TODO();
     } else {
       printf("USAGE : info r /  info w \n");
     }
   }
 
+  return 0;
+}
+
+static int cmd_x(char *args) {
+  char *arg = strtok(NULL, " ");
+  if(arg == NULL) {
+    printf("USAGE : x N EXPR \n");
+    return 0;
+  }
+
+  char *endptr;
+  int N = 0;
+  errno = 0;
+  N = strtoul(arg, &endptr, 10);
+  if(errno == ERANGE) {
+    printf("Numerical result out of range (N).\n");
+    return 0;
+  }
+
+  if(arg == endptr) {
+    printf("No digits were found (N).\n");
+    return 0;
+  }
+
+  if(!(N == 1 || N == 2 || N == 4 || (ISDEF(CONFIG_ISA64) && N == 8))) {
+    printf("The value of N is invalid.\n");
+    return 0;
+  }
+
+  /* N is valid */
+
+  char *addr_char = strtok(NULL, " ");
+  if(addr_char == NULL) {
+    printf("USAGE : x N EXPR \n");
+    return 0;
+  }
+
+  errno = 0;
+  unsigned long long temp_addr = 0;
+  temp_addr = strtoull(addr_char, &endptr, 16);
+
+  if(errno == ERANGE) {
+    printf("Numerical result out of range (addr).\n");
+    return 0;
+  }
+
+  if(addr_char == endptr) {
+    printf("No digits were found (addr).\n");
+    return 0;
+  }
+
+  if (temp_addr > UINT32_MAX && !ISDEF(CONFIG_ISA64)) {
+    printf("Address out of range for 32-bit architecture.\n");
+    return 0;
+  }
+  vaddr_t addr = (vaddr_t)temp_addr;
+
+  /* Check if address is within physical memory bounds */
+  if (addr < CONFIG_MBASE || addr > CONFIG_MBASE + CONFIG_MSIZE - 1) {
+    printf("Address " FMT_WORD " is out of bounds. Valid range: [" FMT_WORD ", " FMT_WORD "]\n", 
+           addr, CONFIG_MBASE, CONFIG_MBASE + CONFIG_MSIZE - 1);
+    return 0;
+  }
+
+  /* addr is valid */
+
+  printf("" FMT_WORD " at " FMT_WORD "\n", vaddr_read(addr, N), addr);
+  
   return 0;
 }
 
