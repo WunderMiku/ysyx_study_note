@@ -18,6 +18,9 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 #include "sdb.h"
+#include <errno.h>
+#include <stdint.h>
+#include <string.h>
 
 static int is_batch_mode = false;
 
@@ -55,6 +58,10 @@ static int cmd_q(char *args) {
 
 static int cmd_help(char *args);
 
+static int cmd_si(char *args);
+
+static int cmd_info(char *args);
+
 static struct {
   const char *name;
   const char *description;
@@ -63,6 +70,8 @@ static struct {
   { "help", "Display information about all supported commands", cmd_help },
   { "c", "Continue the execution of the program", cmd_c },
   { "q", "Exit NEMU", cmd_q },
+  { "si", "Execute N instructions step by step, N default 1", cmd_si},
+  { "info", "Print information, r: register status, w: watchpoint information", cmd_info}
 
   /* TODO: Add more commands */
 
@@ -90,6 +99,51 @@ static int cmd_help(char *args) {
     }
     printf("Unknown command '%s'\n", arg);
   }
+  return 0;
+}
+
+static int cmd_si(char *args) {
+  char *arg = strtok(NULL, " ");
+  char *endptr;
+  uint64_t n = 1;
+
+  if(arg != NULL) {
+    /* Have args */
+    errno = 0;
+    n = strtoul(arg, &endptr, 10);
+    if(errno == ERANGE) {
+      printf("Numerical result out of range.\n");
+      return 0;
+    }
+
+    if(arg == endptr) {
+      printf("No digits were found.\n");
+      return 0;
+    }
+    
+    cpu_exec(n);
+  }
+
+  /* No args */
+  else cpu_exec(1);
+
+  return 0;
+}
+
+static int cmd_info(char *args) {
+  char *arg = strtok(NULL, " ");
+  if (arg == NULL) {
+    printf("USAGE : info r /  info w \n");
+  } else {
+    if (strcmp(arg, "r") == 0) {
+      isa_reg_display();
+    } else 
+    if (strcmp(arg, "w") == 0) {
+    } else {
+      printf("USAGE : info r /  info w \n");
+    }
+  }
+
   return 0;
 }
 
