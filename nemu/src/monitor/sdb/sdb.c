@@ -65,6 +65,8 @@ static int cmd_info(char *args);
 
 static int cmd_x(char *args);
 
+static int cmd_exp(char *args);
+
 static struct {
   const char *name;
   const char *description;
@@ -75,7 +77,8 @@ static struct {
   { "q", "Exit NEMU", cmd_q },
   { "si", "Execute N instructions step by step, N default 1", cmd_si},
   { "info", "Print information, r: register status, w: watchpoint information", cmd_info},
-  {"x", "Scan memory", cmd_x}
+  {"x", "Scan memory", cmd_x},
+    {"exp", "tmp, just test exper", cmd_exp}
 
   /* TODO: Add more commands */
 
@@ -216,6 +219,17 @@ static int cmd_x(char *args) {
   /* addr is valid */
 
   printf("" FMT_WORD " at " FMT_WORD "\n", vaddr_read(addr, N), addr);
+  
+  return 0;
+}
+
+int cmd_exp (char *args) {
+  bool success = true;
+  uint32_t consult;
+  consult = expr(args, &success);
+  if(success) printf("consult: %d\n", consult);
+  
+  else printf("expr ERROR! \n");
   
   return 0;
 }
