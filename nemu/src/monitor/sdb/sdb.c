@@ -21,7 +21,9 @@
 #include "sdb.h"
 #include <errno.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 static int is_batch_mode = false;
 
@@ -78,7 +80,7 @@ static struct {
   { "si", "Execute N instructions step by step, N default 1", cmd_si},
   { "info", "Print information, r: register status, w: watchpoint information", cmd_info},
   {"x", "Scan memory", cmd_x},
-    {"exp", "tmp, just test exper", cmd_exp}
+  {"exp", "tmp, just test exper", cmd_exp}
 
   /* TODO: Add more commands */
 
@@ -223,14 +225,110 @@ static int cmd_x(char *args) {
   return 0;
 }
 
-int cmd_exp (char *args) {
-  bool success = true;
-  uint32_t consult;
-  consult = expr(args, &success);
-  if(success) printf("consult: %d\n", consult);
-  
-  else printf("expr ERROR! \n");
-  
+int cmd_exp (char *args) { //tmp command
+  char *arg = strtok(args, " ");
+  if (arg == NULL) {
+    printf("Need args, such as: exp cal <exp>, exp test <filePath> \n");
+    return 0;
+  }
+
+  if (strcmp(arg, "cal") == 0) {
+    char *expression_cal = arg + strlen(arg) + 1;
+    if(expression_cal == NULL) {
+      printf("Need <exp>. \n");
+      return 0;
+    }
+
+    bool success = true;
+    uint32_t consult;
+
+    consult = expr(expression_cal, &success);
+    if(success) printf("consult: %u\n", consult);
+    
+    else printf("expr ERROR! \n");
+    
+    return 0;
+  }
+
+  if(strcmp(arg, "test") == 0) {
+    char *path = strtok(NULL, " ");
+    if(path == NULL) {
+      printf("Need <exp>. \n");
+      return 0;
+    }
+
+    FILE *fp;
+    char line [65536];
+
+    fp = fopen(path, "r");
+    if(fp == NULL) {
+      printf("File open failed. \n");
+      return 0;
+    }
+
+    uint32_t success_count = 0, failed_count = 0;
+    while(fgets(line, sizeof(line), fp) != NULL) {
+
+      // debug
+      // printf("Raw line: '%s'\n", line);
+      // printf("Line as bytes: ");
+      // for(int i = 0; i < strlen(line); i++) {
+      //   printf("%d ", (unsigned char)line[i]);
+      // }
+      // printf("\n");
+      int len = strlen(line);
+      if(line[len - 1] == '\n') {
+        line[len - 1] = '\0';
+      }
+
+      char *answer = strtok(line, " ");
+      if(answer == NULL) {
+        printf("Failed to get the answer. \n");
+        return 0;
+      }
+
+      errno = 0;
+      char *endptr;
+      uint32_t answer_int = strtoul(answer, &endptr, 10);
+      if(errno == ERANGE) {
+        printf("answer result out of range. \n");
+        return 0;
+      }
+
+      if(answer == endptr) {
+        printf("No digits were found.\n");
+        return 0;
+      }
+
+      /* answer_int is valid */
+
+      char *expression = strtok(NULL, " ");
+      if(expression == NULL) {
+        printf("Failed to get the expression. \n");
+        return 0;
+      }
+
+      bool success = true;
+      uint32_t expression_exp = expr(expression, &success);
+      if(!success) {
+        printf("expr failed! \n");
+        return 0;
+      }
+
+      if(expression_exp == answer_int) {
+        success_count ++;
+      } else {
+        failed_count ++;
+      }
+    }
+    printf("SUCCESS: %d; FAILED: %d \n", success_count, failed_count);
+    if(!failed_count) {
+      printf("ALL TEST PASS! \n");
+    }
+    return 0;
+  }
+
+  printf("Unknown command. \n");
   return 0;
 }
 

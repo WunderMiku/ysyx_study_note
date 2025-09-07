@@ -24,7 +24,7 @@
 #include <stdint.h>
 
 enum {
-  TK_NOTYPE = 256, TK_EQ, NUM,
+  TK_NOTYPE = 256, TK_EQ, NUM, TK_U,
 
   /* TODO: Add more token types */
 
@@ -47,7 +47,8 @@ static struct rule {
   {"/", '/'},          // Division
   {"\\(", '('},        // Left parenthesis
   {"\\)", ')'},        // right parenthesis
-  {"[0-9]+", NUM}       // number
+  {"[0-9]+", NUM},     // number
+  {"U", TK_U}
 };
 
 #define NR_REGEX ARRLEN(rules)
@@ -76,7 +77,7 @@ typedef struct token {
   char str[32];
 } Token;
 
-static Token tokens[32] __attribute__((used)) = {};
+static Token tokens[65536] __attribute__((used)) = {};
 static int nr_token __attribute__((used))  = 0;
 
 static bool make_token(char *e) {
@@ -113,6 +114,8 @@ static bool make_token(char *e) {
             break;
           
           case TK_NOTYPE: break;
+
+          case TK_U: break; // 滤去数字后的U
 
           default:
             tokens[nr_token].type = rules[i].token_type;
