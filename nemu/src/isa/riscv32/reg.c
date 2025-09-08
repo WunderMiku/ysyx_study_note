@@ -14,7 +14,9 @@
 ***************************************************************************************/
 
 #include <isa.h>
+#include <stdbool.h>
 #include "local-include/reg.h"
+#include "macro.h"
 
 const char *regs[] = {
   "$0", "ra", "sp", "gp", "tp", "t0", "t1", "t2",
@@ -24,11 +26,33 @@ const char *regs[] = {
 };
 
 void isa_reg_display() {
-  for (int i = 0; i < 32; i++) {
+  for (int i = 0; i < ARRLEN(regs); i++) {
     printf("%s: 0x%08x\n", regs[i], gpr(i));
   }
 }
 
 word_t isa_reg_str2val(const char *s, bool *success) {
+  if(success == NULL) {
+    Log("success is NULL!");
+    return 0;
+  }
+
+  if(s == NULL) {
+    Log("reg_name is NULL!");
+    *success = false;
+    return 0;
+  }
+
+  for (int i = 0; i < ARRLEN(regs); i++) {
+    if(strcmp(regs[i], s) == 0) {
+      *success = true;
+      return gpr(i);
+    }
+  }
+
+  Log("Unknown regs.");
+  *success = false;
   return 0;
 }
+
+
