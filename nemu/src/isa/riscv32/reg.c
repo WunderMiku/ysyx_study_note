@@ -15,6 +15,7 @@
 
 #include <isa.h>
 #include <stdbool.h>
+#include <string.h>
 #include "local-include/reg.h"
 #include "macro.h"
 
@@ -50,6 +51,11 @@ word_t isa_reg_str2val(const char *s, bool *success) {
     }
   }
 
+  if(strcmp("pc", s) == 0) {
+    *success = true;
+    return cpu.pc;
+  }
+  
   Log("Unknown regs.");
   *success = false;
   return 0;

@@ -199,7 +199,7 @@ static uint32_t eval(uint32_t p, uint32_t q, bool *success) {
     if(tokens[p].type == TK_REGS) {
       uint32_t val = (uint32_t) isa_reg_str2val(tokens[p].str, success);
       if(*success) {
-      Log("Return Reg: $%s = %u", tokens[p].str, val);
+      Log("Return Reg: $%s = 0x%08x", tokens[p].str, val);
       return val;
       } else {
         Log("Get regs failed.");

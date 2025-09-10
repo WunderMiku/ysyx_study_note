@@ -136,8 +136,22 @@ void scan_all_using_wp() {
         continue;
       }
       if(result != old_result) {
-        nemu_state.state = NEMU_STOP;
-        printf("watchpoint %d triggered (expression : %s). \n", NO, str);
+        if(nemu_state.state == NEMU_RUNNING) { // 因为程序退出与暂停均依靠这个判断，所以目前只能这样
+          nemu_state.state = NEMU_STOP;
+          printf("watchpoint %d triggered (expression : %s). \n", NO, str);
+        }
       }
+  }
+}
+
+void list_all_using_wp() {
+  for (WP *wp_ptr = head; wp_ptr != NULL; wp_ptr = wp_ptr->next) {
+      char *str = wp_ptr->str;
+      uint32_t old_result = wp_ptr->old_result;
+      if(str == NULL) {
+        Log("Find a null str wp.");
+        continue;
+      } 
+      printf("%d   %s",old_result, str);
   }
 }
