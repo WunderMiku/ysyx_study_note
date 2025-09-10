@@ -277,20 +277,24 @@ static uint32_t eval(uint32_t p, uint32_t q, bool *success) {
       
     case TK_EQ:
       result = (val1 == val2);
+       Log("Comparing: %u == %u = %s", val1, val2, result ? "true" : "false");
       break;
 
     case TK_NE:
       result = (val1 != val2);
+      Log("Comparing: %u != %u = %s", val1, val2, result ? "true" : "false");
       break;
 
     case TK_AND:
       result = (val1 && val2);
+      Log("Logic AND: %u && %u = %s", val1, val2, result ? "true" : "false");
       break;
 
     default: 
       Log("Unknown operator type: %d", op_type);
       assert(0);
   }
+  Log("Returning result: %u", result);
   return result; 
 }
 

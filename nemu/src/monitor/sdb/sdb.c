@@ -25,6 +25,7 @@
 #include <string.h>
 #include <time.h>
 
+
 static int is_batch_mode = false;
 
 void init_regex();
@@ -69,6 +70,10 @@ static int cmd_x(char *args);
 
 static int cmd_exp(char *args);
 
+static int cmd_w(char* args);
+
+static int cmd_d(char* args);
+
 static struct {
   const char *name;
   const char *description;
@@ -80,7 +85,9 @@ static struct {
   { "si", "Execute N instructions step by step, N default 1", cmd_si},
   { "info", "Print information, r: register status, w: watchpoint information", cmd_info},
   {"x", "Scan memory", cmd_x},
-  {"exp", "tmp, just test exper", cmd_exp}
+  {"exp", "tmp, just test exper", cmd_exp},
+  {"w", "add watchpoint", cmd_w},
+  {"d", "delete watchpoint", cmd_d}
 
   /* TODO: Add more commands */
 
@@ -329,6 +336,66 @@ int cmd_exp (char *args) { //tmp command
   }
 
   printf("Unknown command. \n");
+  return 0;
+}
+
+static int cmd_w(char* args) {
+  if(args == NULL) {
+    printf("Need an expression! \n");
+    return 0;
+  }
+  uint32_t result = 0;
+  bool success = true;
+  result = expr(args, &success);
+  if(!success) {
+    printf("Invalid expression! \n");
+    return 0;
+  }
+  if(strlen(args) > MAXSIZE) {
+    printf("expression too long! \n");
+    return 0;
+  }
+  success = true;
+  new_wp(args, result, &success);
+  if(success) {
+    printf("A new watchpoint has been established. \n");
+  } else {
+    printf("Failed to establish a new watchpoint. \n");
+  }
+  return 0;
+}
+
+static int cmd_d(char* args) {
+  char *arg = strtok(NULL, " ");
+  if(arg == NULL) {
+    printf("Failed to get the NO. \n");
+    return 0;
+  }
+
+  errno = 0;
+  char *endptr;
+  uint32_t NO = strtoul(arg, &endptr, 10);
+  if(errno == ERANGE) {
+    printf("No result out of range. \n");
+    return 0;
+  }
+
+  if(arg == endptr) {
+    printf("No digits were found. \n");
+    return 0;
+  }
+
+  if(NO >= NR_WP) {
+    printf("NO out of range. \n");
+    return 0;
+  }
+  bool success = true;
+  free_wp(NO, &success);
+  if(success) {
+    printf("Successfully free watchpoint (NO:%d). \n", NO);
+  } else {
+    printf("Failed to free watchpoint. \n");
+  }
   return 0;
 }
 
