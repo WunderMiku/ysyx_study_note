@@ -74,6 +74,8 @@ static int cmd_w(char* args);
 
 static int cmd_d(char* args);
 
+static int cmd_b(char* args);
+
 static struct {
   const char *name;
   const char *description;
@@ -87,7 +89,8 @@ static struct {
   {"x", "Scan memory", cmd_x},
   {"exp", "tmp, just test exper", cmd_exp},
   {"w", "add watchpoint", cmd_w},
-  {"d", "delete watchpoint", cmd_d}
+  {"d", "delete watchpoint", cmd_d},
+  {"b", "set breakpoint", cmd_b}
 
   /* TODO: Add more commands */
 
@@ -155,7 +158,7 @@ static int cmd_info(char *args) {
       isa_reg_display();
     } else 
     if (strcmp(arg, "w") == 0) {
-      TODO();
+      list_all_using_wp();
     } else {
       printf("USAGE : info r /  info w \n");
     }
@@ -340,6 +343,12 @@ int cmd_exp (char *args) { //tmp command
 }
 
 static int cmd_w(char* args) {
+  // 如果没有开启watchpoint功能
+  #ifndef CONFIG_WATCHPOINT
+  printf("Watchpoint feature is disabled. Please enable it in the menuconfig. \n");
+  return 0;
+  #endif
+
   if(args == NULL) {
     printf("Need an expression! \n");
     return 0;
@@ -396,6 +405,59 @@ static int cmd_d(char* args) {
   } else {
     printf("Failed to free watchpoint. \n");
   }
+  return 0;
+}
+
+static int cmd_b(char* args) {
+  if(args == NULL) {
+    printf("Need an address! \n");
+    return 0;
+  }
+
+  errno = 0;
+  char *endptr;
+  word_t temp_addr = strtoul(args, &endptr, 16);
+
+  if(errno == ERANGE) {
+    printf("Numerical result out of range. \n");
+    return 0;
+  }
+
+  if(args == endptr) {
+    printf("No digits were found. \n");
+    return 0;
+  }
+
+  if (temp_addr > UINT32_MAX && !ISDEF(CONFIG_ISA64)) {
+    printf("Address out of range for 32-bit architecture. \n");
+    return 0;
+  }
+  vaddr_t addr = (vaddr_t)temp_addr;
+
+  /* Check if address is within physical memory bounds */
+  if (addr < CONFIG_MBASE || addr > CONFIG_MBASE + CONFIG_MSIZE - 1) {
+    printf("Address " FMT_WORD " is out of bounds. Valid range: [" FMT_WORD ", " FMT_WORD "]\n", 
+           addr, CONFIG_MBASE, CONFIG_MBASE + CONFIG_MSIZE - 1);
+    return 0;
+  }
+  char str[MAXSIZE];
+  snprintf(str, MAXSIZE, "$pc == " FMT_WORD "", addr);
+
+  bool success = true;
+  uint32_t result = expr(str, &success);
+  if(!success) {
+    printf("Invalid expression! \n");
+    return 0;
+  }
+
+  new_wp(str, result, &success);
+
+  if(success) {
+    printf("A new breakpoint has been established at address " FMT_WORD ". \n", addr);
+  } else {
+    printf("Failed to establish a new breakpoint. \n");
+  }
+  
   return 0;
 }
 
