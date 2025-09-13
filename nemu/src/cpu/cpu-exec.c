@@ -131,6 +131,8 @@ void cpu_exec(uint64_t n) {
             ANSI_FMT("HIT BAD TRAP", ANSI_FG_RED))),
           nemu_state.halt_pc);
       // fall through
-    case NEMU_QUIT: statistic();
+    case NEMU_QUIT: 
+      delete_all_using_wp(); // 退出时删除所有watchpoint，防止内存泄漏（但实际似乎没什么用处）
+      statistic();
   }
 }

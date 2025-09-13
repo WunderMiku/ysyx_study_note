@@ -159,3 +159,16 @@ void list_all_using_wp() {
       printf("%d  |  %d  |  %s \n", NO, old_result, str);
   }
 }
+
+void delete_all_using_wp() {
+  bool success = true;
+  WP *wp_ptr = head;
+  WP *next_wp = head->next;
+  for (; wp_ptr != NULL; wp_ptr = next_wp) {
+      next_wp = wp_ptr->next;
+      free_wp(wp_ptr->NO, &success);
+      if(!success) {
+        Log("Failed to free watchpoint NO:%d", wp_ptr->NO);
+      }
+  }
+}
