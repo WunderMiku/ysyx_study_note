@@ -126,6 +126,13 @@ endmenu
 
 menu "Testing and Debugging"
 
+config LOG_TO_STDOUT
+  bool "Log to stdout"
+  default y
+
+config WATCHPOINT
+  bool "Enable watchpoint"
+  default y
 
 config TRACE
   bool "Enable tracer"

@@ -38,6 +38,14 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
 #endif
   if (g_print_step) { IFDEF(CONFIG_ITRACE, puts(_this->logbuf)); }
   IFDEF(CONFIG_DIFFTEST, difftest_step(_this->pc, dnpc));
+
+  #ifdef CONFIG_WATCHPOINT
+  // 临时修改pc为了让watchpoint模块能正确获取到pc
+  vaddr_t nowpc = cpu.pc;
+  cpu.pc = _this->pc;
+  scan_all_using_wp();
+  cpu.pc = nowpc;
+  #endif
 }
 
 static void exec_once(Decode *s, vaddr_t pc) {
@@ -123,6 +131,8 @@ void cpu_exec(uint64_t n) {
             ANSI_FMT("HIT BAD TRAP", ANSI_FG_RED))),
           nemu_state.halt_pc);
       // fall through
-    case NEMU_QUIT: statistic();
+    case NEMU_QUIT: 
+      delete_all_using_wp(); // 退出时删除所有watchpoint，防止内存泄漏（但实际似乎没什么用处）
+      statistic();
   }
 }

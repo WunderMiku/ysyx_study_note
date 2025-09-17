@@ -17,7 +17,28 @@
 #define __SDB_H__
 
 #include <common.h>
+#include <stdint.h>
 
 word_t expr(char *e, bool *success);
+
+/* watchpoint part */
+#define NR_WP 32
+#define MAXSIZE 1024
+
+typedef struct watchpoint {
+  int NO;
+  struct watchpoint *next;
+
+  char * str;
+  uint32_t old_result;
+
+} WP;
+
+void scan_all_using_wp();
+void list_all_using_wp();
+void delete_all_using_wp();
+WP *new_wp(char *, uint32_t, bool *);
+void free_wp(int, bool*);
+
 
 #endif
