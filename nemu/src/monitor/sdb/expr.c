@@ -127,7 +127,7 @@ static bool make_token(char *e) {
             nr_token++;
             break;
           
-          case TK_NOTYPE: break;
+          case TK_NOTYPE: break; // 滤去空格
 
           case TK_U: break; // 滤去数字后的U
 
@@ -153,7 +153,7 @@ static bool make_token(char *e) {
       }
     }
 
-    if (i == NR_REGEX) {
+    if (i == NR_REGEX) { // 如果到最后都没匹配上
       printf("no match at position %d\n%s\n%*.s^\n", position, e, position, "");
       return false;
     }
@@ -189,7 +189,7 @@ static uint32_t eval(uint32_t p, uint32_t q, bool *success) {
   }
 
   if (p == q) { // 仅存在一个token 若为 NUM/HEX_NUM 类型返回其数值，如果是寄存器类型 返回其寄存器值 若都不是则不合法
-    // 此处假设str数组中为合法的NUM数据
+    // 此处认为str数组中为合法的NUM数据
     if((tokens[p].type == NUM) || (tokens[p].type == HEX_NUM)) {
       uint32_t val = strtoul(tokens[p].str, NULL, 0);
       Log("Return NUM: %s = %u", tokens[p].str, val);
@@ -232,7 +232,7 @@ static uint32_t eval(uint32_t p, uint32_t q, bool *success) {
   Log("Operator position: %d, type: %d", op, op_type);
   
   uint32_t val1;
-  if (op_type != DEREF) { // 如果是单元运算符 不计算val1
+  if (op_type != DEREF) { // 如果是一元运算符 不计算val1
     val1 = eval(p, op - 1, success);
   }
 
