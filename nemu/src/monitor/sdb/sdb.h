@@ -17,6 +17,7 @@
 #define __SDB_H__
 
 #include <common.h>
+#include <stdbool.h>
 #include <stdint.h>
 
 word_t expr(char *e, bool *success);
@@ -29,6 +30,7 @@ typedef struct watchpoint {
   int NO;
   struct watchpoint *next;
 
+  bool breakpoint; // 是否是断点
   char * str;
   uint32_t old_result;
 
@@ -37,7 +39,7 @@ typedef struct watchpoint {
 void scan_all_using_wp();
 void list_all_using_wp();
 void delete_all_using_wp();
-WP *new_wp(char *, uint32_t, bool *);
+WP *new_wp(char *, uint32_t, bool *, bool);
 void free_wp(int, bool*);
 
 

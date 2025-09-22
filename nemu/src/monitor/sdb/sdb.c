@@ -365,7 +365,7 @@ static int cmd_w(char* args) {
     return 0;
   }
   success = true;
-  new_wp(args, result, &success);
+  new_wp(args, result, &success, false);
   if(success) {
     printf("A new watchpoint has been established. \n");
   } else {
@@ -450,7 +450,7 @@ static int cmd_b(char* args) {
     return 0;
   }
 
-  new_wp(str, result, &success);
+  new_wp(str, result, &success, true);
 
   if(success) {
     printf("A new breakpoint has been established at address " FMT_WORD ". \n", addr);
