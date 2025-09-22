@@ -38,7 +38,7 @@ void init_wp_pool() {
 
 /* TODO: Implement the functionality of watchpoint */
 
-WP *new_wp(char * expression, uint32_t initial_value, bool *success) {
+WP *new_wp(char * expression, uint32_t initial_value, bool *success, bool breakpoint) {
   if(expression == NULL) {
     Log("null expression!");
     *success = false;
@@ -50,6 +50,7 @@ WP *new_wp(char * expression, uint32_t initial_value, bool *success) {
     assert(0);
   }
 
+  // 分配一个新的watchpoint的链表操作
   WP *new_wp = free_;
   free_ = free_->next;
 
@@ -57,15 +58,31 @@ WP *new_wp(char * expression, uint32_t initial_value, bool *success) {
   head = new_wp;
   new_wp->next = first_busy_wp;
 
+  // 设置watchpoint的其他属性
+
+  // 分配表达式的内存空间
   new_wp->str = calloc(sizeof(char), MAXSIZE + 1);
   assert(new_wp->str);
 
+  // 复制表达式
   strncpy(new_wp->str, expression, MAXSIZE);
   new_wp->str[MAXSIZE] = '\0'; // 保证字符串合法
+
+  new_wp->breakpoint = breakpoint;
   new_wp->old_result = initial_value;
 
-  printf("watchpoint(NO:%d; expression: %s) \n", new_wp->NO, new_wp->str);
-  Log("Successfully returned a free watchpoint");
+  if(breakpoint) {
+    printf("breakpoint(NO:%d; expression: %s) \n", new_wp->NO, new_wp->str);
+  } else {
+    printf("watchpoint(NO:%d; expression: %s) \n", new_wp->NO, new_wp->str);
+  }
+
+  if(breakpoint) {
+    Log("Successfully returned a free breakpoint");
+  } else {
+    Log("Successfully returned a free watchpoint");
+  }
+  
   return new_wp;
 }
 
@@ -123,6 +140,7 @@ void scan_all_using_wp() {
   for (WP *wp_ptr = head; wp_ptr != NULL; wp_ptr = wp_ptr->next) {
       char *str = wp_ptr->str;
       uint32_t old_result = wp_ptr->old_result;
+      bool breakpoint = wp_ptr->breakpoint;
       int NO = wp_ptr->NO;
 
       if(str == NULL) {
@@ -132,15 +150,30 @@ void scan_all_using_wp() {
       bool success = true;
       uint32_t result = expr(str, &success);
       if(!success) {
-        Log("watchpoint(NO:%d): Expression parsing failed", NO);
+        if(!breakpoint) 
+          Log("watchpoint(NO:%d): Expression parsing failed", NO);
+        else
+          Log("breakpoint(NO:%d): Expression parsing failed", NO);
+        
         continue;
       }
-      if(result != old_result) {
+      if((result != old_result) && !breakpoint) { // 当值改变且是watchpoint时触发
         if(nemu_state.state == NEMU_RUNNING) { // 因为程序退出与暂停均依靠这个判断，所以目前只能这样
           nemu_state.state = NEMU_STOP;
           printf("watchpoint %d triggered (expression : %s). \n", NO, str);
+          printf("Old value = 0x%08x\nNew value = 0x%08x\n", old_result, result);
+          wp_ptr->old_result = result; // 更新值
         } else {
           printf("watchpoint %d triggered but nemu has already stopped or ended (expression : %s). \n", NO, str);
+        }
+      }
+      if(result && breakpoint) { // 当值为1且是breakpoint时触发
+        if(nemu_state.state == NEMU_RUNNING) { // 因为程序退出与暂停均依靠这个判断，所以目前只能这样
+          nemu_state.state = NEMU_STOP;
+          printf("breakpoint %d triggered (expression : %s). \n", NO, str);
+          wp_ptr->old_result = result; // 更新值
+        } else {
+          printf("breakpoint %d triggered but nemu has already stopped or ended (expression : %s). \n", NO, str);
         }
       }
   }
