@@ -17,6 +17,7 @@
 
 #include <memory/vaddr.h>
 
+// 取指，更新pc
 static inline uint32_t inst_fetch(vaddr_t *pc, int len) {
   uint32_t inst = vaddr_ifetch(*pc, len);
   (*pc) += len;
