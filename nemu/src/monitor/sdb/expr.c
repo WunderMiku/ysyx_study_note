@@ -101,8 +101,8 @@ static bool make_token(char *e) {
         char *substr_start = e + position;
         int substr_len = pmatch.rm_eo;
 
-        Log("match rules[%d] = \"%s\" at position %d with len %d: %.*s",
-            i, rules[i].regex, position, substr_len, substr_len, substr_start);
+        // Log("match rules[%d] = \"%s\" at position %d with len %d: %.*s",
+        //    i, rules[i].regex, position, substr_len, substr_len, substr_start);
 
         position += substr_len;
 
@@ -181,7 +181,7 @@ static uint32_t get_op_pos(uint32_t p, uint32_t q);
 static uint32_t eval(uint32_t p, uint32_t q, bool *success) { 
   *success = true;
 
-  Log("eval: p=%d, q=%d", p, q);
+  // Log("eval: p=%d, q=%d", p, q);
   if (p > q) { // 不合法子串
     Log("Invalid substring: p > q");
     *success = false;
@@ -192,14 +192,14 @@ static uint32_t eval(uint32_t p, uint32_t q, bool *success) {
     // 此处认为str数组中为合法的NUM数据
     if((tokens[p].type == NUM) || (tokens[p].type == HEX_NUM)) {
       uint32_t val = strtoul(tokens[p].str, NULL, 0);
-      Log("Return NUM: %s = %u", tokens[p].str, val);
+      // Log("Return NUM: %s = %u", tokens[p].str, val);
       return val;
     }
 
     if(tokens[p].type == TK_REGS) {
       uint32_t val = (uint32_t) isa_reg_str2val(tokens[p].str, success);
       if(*success) {
-      Log("Return Reg: $%s = 0x%08x", tokens[p].str, val);
+      // Log("Return Reg: $%s = 0x%08x", tokens[p].str, val);
       return val;
       } else {
         Log("Get regs failed.");
@@ -215,13 +215,13 @@ static uint32_t eval(uint32_t p, uint32_t q, bool *success) {
   }
 
   if (!check_parentheses_valid(p, q)) { // 括号不合法
-    Log("Parentheses not valid");
+    // Log("Parentheses not valid");
     *success = false;
     return 0;
   }
 
   if (check_parentheses(p, q)) { // 该表达式被一对括号包括，需要去除该对括号
-    Log("Parentheses enclosed, recursing into (%d, %d)", p+1, q-1);
+    // Log("Parentheses enclosed, recursing into (%d, %d)", p+1, q-1);
     return eval (p + 1, q - 1, success);
   }
 
@@ -229,7 +229,7 @@ static uint32_t eval(uint32_t p, uint32_t q, bool *success) {
   
   uint32_t op = get_op_pos(p, q);
   int op_type = tokens[op].type;
-  Log("Operator position: %d, type: %d", op, op_type);
+  // Log("Operator position: %d, type: %d", op, op_type);
   
   uint32_t val1;
   if (op_type != DEREF) { // 如果是一元运算符 不计算val1
@@ -242,17 +242,17 @@ static uint32_t eval(uint32_t p, uint32_t q, bool *success) {
   switch (op_type) {
     case '+': 
       result = val1 + val2;
-      Log("Computing: %u + %u = %u", val1, val2, result);
+      // Log("Computing: %u + %u = %u", val1, val2, result);
       break;
 
     case '-': 
       result = val1 - val2;
-      Log("Computing: %u - %u = %u", val1, val2, result);
+      // Log("Computing: %u - %u = %u", val1, val2, result);
       break;
 
     case '*': 
       result = val1 * val2;
-      Log("Computing: %u * %u = %u", val1, val2, result);
+      // Log("Computing: %u * %u = %u", val1, val2, result);
       break;
 
     case '/': 
@@ -262,7 +262,7 @@ static uint32_t eval(uint32_t p, uint32_t q, bool *success) {
         return 0;
       }
       result = val1 / val2;
-      Log("Computing: %u / %u = %u", val1, val2, result);
+      // Log("Computing: %u / %u = %u", val1, val2, result);
       break;
 
     case DEREF:
@@ -277,24 +277,24 @@ static uint32_t eval(uint32_t p, uint32_t q, bool *success) {
       
     case TK_EQ:
       result = (val1 == val2);
-       Log("Comparing: %u == %u = %s", val1, val2, result ? "true" : "false");
+       // Log("Comparing: %u == %u = %s", val1, val2, result ? "true" : "false");
       break;
 
     case TK_NE:
       result = (val1 != val2);
-      Log("Comparing: %u != %u = %s", val1, val2, result ? "true" : "false");
+      // Log("Comparing: %u != %u = %s", val1, val2, result ? "true" : "false");
       break;
 
     case TK_AND:
       result = (val1 && val2);
-      Log("Logic AND: %u && %u = %s", val1, val2, result ? "true" : "false");
+      // Log("Logic AND: %u && %u = %s", val1, val2, result ? "true" : "false");
       break;
 
     default: 
       Log("Unknown operator type: %d", op_type);
       assert(0);
   }
-  Log("Returning result: %u", result);
+  // Log("Returning result: %u", result);
   return result; 
 }
 
