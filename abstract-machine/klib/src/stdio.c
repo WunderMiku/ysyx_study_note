@@ -75,7 +75,7 @@ int sprintf(char *out, const char *fmt, ...) {
       default: assert(0);
     }
   }
-  *out = 0; // add a \0
+  *out = 0; // add '\0'
   va_end(ap);
   return ret;
 }
