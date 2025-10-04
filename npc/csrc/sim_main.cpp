@@ -2,12 +2,14 @@
 #include <nvboard.h>
 #include "verilated.h"
 #include "verilated_fst_c.h"
+#include "verilatedos.h"
 
 #define MAX_SIM_TIME 50
 
 void nvboard_bind_all_pins(TOP_NAME* top);
 
 vluint64_t sim_time = 0;
+vluint32_t M[1024] = {0x01400513, 0x010000e7, 0x00c000e7, 0x00c00067, 0x00a50513, 0x00008067};
 
 static void single_cycle(Vtop*);
 static void reset(Vtop*);
@@ -24,16 +26,24 @@ int main(int argc, char** argv) {
 	dut->trace(tfp, 5);  // 设置跟踪深度
 	tfp->open("logs/sim.fst");  // 打开并创建波形文件
 
-		nvboard_bind_all_pins(dut.get());
-  	nvboard_init();
-
-	while(1) {
-		nvboard_update();
+	// nvboard_bind_all_pins(dut.get());
+  // nvboard_init();
+	reset(dut.get());
+	int i = 0;
+	contextp->timeInc(1);
+	tfp->dump(contextp->time());
+	// nvboard_update();
+	while(i < 30) {
+		// nvboard_update();
 		single_cycle(dut.get());
+		contextp->timeInc(1);
+		tfp->dump(contextp->time());
+		i++;
 	}
-	
+
+	dut->final();
 	tfp->close();
-  nvboard_quit();
+  // nvboard_quit();
 	
 
 	return 0;
@@ -41,7 +51,10 @@ int main(int argc, char** argv) {
 
 static void single_cycle(Vtop* dut) {
   dut->clk = 0; dut->eval();
+	dut->inst = M[(dut->pc_out) >> 2]; dut->eval();
+	printf("pc: %x, inst: %x\n", dut->pc_out, dut->inst);
   dut->clk = 1; dut->eval();
+	// printf("a0: %x08\n", dut->a0);
 }
 
 static void reset(Vtop *dut) {
