@@ -25,7 +25,7 @@ $(SRC_AUTO_BIND): $(NXDC_FILES)
 
 # project source
 CSRCS = $(shell find $(abspath ./csrc) -name "*.c" -or -name "*.cc" -or -name "*.cpp")
-VSRCS := $(wildcard vsrc/*.v)
+VSRCS := $(wildcard vsrc/*.v) $(wildcard vsrc/*.sv)
 #CSRCS += $(SRC_AUTO_BIND) // 暂时禁用自动绑定
 
 # rules for NVBoard

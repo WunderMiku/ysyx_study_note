@@ -22,7 +22,7 @@ module top (
   wire [4:0] rs1_addr, rs2_addr, rd_addr;
   wire [31:0] rs1_val, rs2_val, rd_val;
   wire [31:0] imm;
-  wire add_en, addi_en, lui_en, lw_en, lbu_en, sw_en, sb_en, jalr_en;
+  wire add_en, addi_en, lui_en, lw_en, lbu_en, sw_en, sb_en, jalr_en, ebreak_en;
   wire [11:0] I_imm, S_imm;
   wire [12:0] B_imm;
   wire [31:0] U_imm;
@@ -40,6 +40,7 @@ module top (
     .sw_en(sw_en),
     .sb_en(sb_en),
     .jalr_en(jalr_en),
+    .ebreak_en(ebreak_en),
     .I_imm(I_imm),
     .S_imm(S_imm),
     .B_imm(B_imm),
@@ -99,6 +100,7 @@ module top (
     .sw_en(sw_en),
     .sb_en(sb_en),
     .jalr_en(jalr_en),
+    .ebreak_en(ebreak_en),
 
     .rs1_val(ex_rs1_val),
     .rs2_val(ex_rs2_val),

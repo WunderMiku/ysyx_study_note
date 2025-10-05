@@ -1,15 +1,19 @@
 #include "Vtop.h"
+#include <bits/posix2_lim.h>
 #include <nvboard.h>
 #include "verilated.h"
 #include "verilated_fst_c.h"
 #include "verilatedos.h"
+#include "svdpi.h"
+
 
 #define MAX_SIM_TIME 50
 
 void nvboard_bind_all_pins(TOP_NAME* top);
+// extern svBit ebreak_get();
 
 vluint64_t sim_time = 0;
-vluint32_t M[1024] = {0x01400513, 0x010000e7, 0x00c000e7, 0x00c00067, 0x00a50513, 0x00008067};
+vluint32_t M[1024] = {0x01400513, 0x010000e7, 0x00c000e7, 0x00100073, 0x00a50513, 0x00008067};
 
 static void single_cycle(Vtop*);
 static void reset(Vtop*);
@@ -26,6 +30,10 @@ int main(int argc, char** argv) {
 	dut->trace(tfp, 5);  // 设置跟踪深度
 	tfp->open("logs/sim.fst");  // 打开并创建波形文件
 
+	// 得到DPI函数导入需要的scope
+	const svScope scope = svGetScopeFromName("TOP.top.uEXU");  
+	assert(scope);
+	svSetScope(scope);
 	// nvboard_bind_all_pins(dut.get());
   // nvboard_init();
 	reset(dut.get());
@@ -39,6 +47,15 @@ int main(int argc, char** argv) {
 		contextp->timeInc(1);
 		tfp->dump(contextp->time());
 		i++;
+
+		// 检测是否结束
+		svBit flag;
+		dut->ebreak_get(&flag); 
+		if(flag) {
+			// nvboard_quit();
+			printf("Simulation Ended by ebreak\n");
+			break;
+		}
 	}
 
 	dut->final();

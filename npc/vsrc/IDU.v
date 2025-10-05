@@ -11,6 +11,7 @@ module IDU (
 	output sw_en,
 	output sb_en,
 	output jalr_en,
+	output ebreak_en,
 	output [11:0] I_imm,
 	output [11:0] S_imm,
 	output [12:0] B_imm,
@@ -40,5 +41,6 @@ assign lbu_en  =  (opcode == 7'b0000011) && (funct3 == 3'b100);
 assign sw_en   =  (opcode == 7'b0100011) && (funct3 == 3'b010);
 assign sb_en   =  (opcode == 7'b0100011) && (funct3 == 3'b000);
 assign jalr_en =  (opcode == 7'b1100111) && (funct3 == 3'b000);
+assign ebreak_en = (inst == 32'h00100073);
 
 endmodule
