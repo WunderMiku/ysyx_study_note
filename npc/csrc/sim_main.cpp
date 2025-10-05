@@ -37,22 +37,19 @@ int main(int argc, char** argv) {
 	// nvboard_bind_all_pins(dut.get());
   // nvboard_init();
 	reset(dut.get());
-	int i = 0;
 	contextp->timeInc(1);
 	tfp->dump(contextp->time());
 	// nvboard_update();
-	while(i < 30) {
+	while(true) {
 		// nvboard_update();
 		single_cycle(dut.get());
 		contextp->timeInc(1);
 		tfp->dump(contextp->time());
-		i++;
 
 		// 检测是否结束
 		svBit flag;
 		dut->ebreak_get(&flag); 
 		if(flag) {
-			// nvboard_quit();
 			printf("Simulation Ended by ebreak\n");
 			break;
 		}
