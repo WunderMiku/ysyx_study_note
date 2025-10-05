@@ -14,6 +14,7 @@ module EXU (
 	input  [31:0] rs1_val,
 	input  [31:0] rs2_val,
 	input  [4:0]  rd_addr,
+	input  [31:0] ram_read_val,
 	input  [31:0] imm, // 均为符号扩展后的立即数
 
 	// PC相关
@@ -21,24 +22,33 @@ module EXU (
 	output [31:0] next_pc,
 
 	// 内存接口
+	// 写端口
 	output        ram_we,
-	output [31:0] ram_addr,
-	output [31:0] ram_data,
+	output [31:0] ram_write_addr,
+	output [31:0] ram_write_data,
+	output [3:0]  ram_write_mask,
 	
+
+	// 读端口
+	output        ram_re,
+	output [31:0] ram_read_addr,
+
 	// 寄存器接口
 	output        reg_we,
 	output [4:0]  reg_addr,
 	output [31:0] reg_data
 );
 	// =========== 寄存器信号控制 =========== 
-	assign reg_we = (add_en | addi_en | jalr_en | lui_en) && (reg_addr != 5'b0);
+	assign reg_we = (add_en | addi_en | jalr_en | lui_en | lbu_en | lw_en) && (reg_addr != 5'b0);
 
 	assign reg_data = ({32{add_en}} & (rs1_val + rs2_val)) |
 	                  ({32{addi_en}} & (rs1_val + imm))    |
 						        ({32{jalr_en}} & (pc + 4))           |
-										({32{lui_en}} & {imm[31:12], 12'b0});
+										({32{lui_en}} & {imm[31:12], 12'b0}) |
+										({32{lbu_en}} & {24'b0, ram_read_offset_val}) |
+										({32{lw_en}} & ram_read_val);
 
-	assign reg_addr = ({5{add_en | addi_en | jalr_en | lui_en}} & rd_addr) | 5'b0;
+	assign reg_addr = ({5{add_en | addi_en | jalr_en | lui_en | lbu_en | lw_en}} & rd_addr) | 5'b0;
 
 
 	// =========== PC信号控制 =========== 
@@ -46,11 +56,35 @@ module EXU (
 
 
 	// =========== 储存器信号控制 =========== 
-	assign ram_we = 1'b0;
+	assign ram_we = sb_en | sw_en;
 
-	assign ram_data = 32'b0;
+	assign ram_write_data = ({32{sb_en}} & ({4{rs2_val[7:0]}})) |
+	                        ({32{sw_en}} & (rs2_val[31:0]));
 
-	assign ram_addr = 32'b0;
+	assign ram_write_addr = ({32{sb_en | sw_en}} & (rs1_val + imm));
+
+	assign ram_write_mask = ({4{sb_en}} & {ram_write_addr[1:0] == 2'd3, 
+																				 ram_write_addr[1:0] == 2'd2, 
+																				 ram_write_addr[1:0] == 2'd1, 
+																				 ram_write_addr[1:0] == 2'd0}) |
+													({4{sw_en}});
+
+	assign ram_re = lbu_en | lw_en;
+
+	assign ram_read_addr = ({32{lbu_en | lw_en}} & (rs1_val + imm));
+
+
+	// 单字节读取
+	reg [7:0] ram_read_offset_val;
+	always @(*) begin 
+		case(ram_read_addr[1:0])
+			2'd0: ram_read_offset_val = ram_read_val[7:0];
+			2'd1: ram_read_offset_val = ram_read_val[15:8];
+			2'd2: ram_read_offset_val = ram_read_val[23:16];
+			2'd3: ram_read_offset_val = ram_read_val[31:24];
+		endcase
+	end
+
 
   // =========== DPI-C 信号传递 ===========
 	export "DPI-C" function ebreak_get;

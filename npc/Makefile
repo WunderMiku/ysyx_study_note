@@ -1,6 +1,7 @@
 TOPNAME = top
 NXDC_FILES = constr/top.nxdc
 INC_PATH ?=
+SIM_ARGS ?=
 
 ifeq ($(VERILATOR_ROOT),)
 VERILATOR = verilator
@@ -47,7 +48,7 @@ all: sim
 	
 sim: $(BIN)
 	$(call git_commit, "sim RTL") # DO NOT REMOVE THIS LINE!!!
-	@$^ +trace
+	@$^ +trace $(SIM_ARGS)
 
 clean:
 	-rm -rf obj_dir logs *.log *.dmp *.vpd coverage.dat core $(BUILD_DIR)

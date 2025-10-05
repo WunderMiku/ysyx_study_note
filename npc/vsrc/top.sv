@@ -1,0 +1,213 @@
+module top (
+  input clk,
+  input rst,
+  output [31:0] A0
+);
+  // =========== IFU实现 ===========
+  import "DPI-C" function int pmem_read(input int raddr);
+  import "DPI-C" function void pmem_write(
+    input int waddr, input int wdata, input byte wmask);
+
+  reg [31:0] inst;
+  always @(*) begin
+    inst = pmem_read(pc);
+  end
+
+
+  // =========== PC 寄存器实现 ===========
+  reg  [31:0] pc;
+  wire [31:0] next_pc;
+
+  // WBU 输入 至 PC
+  assign next_pc = wb_next_pc;
+
+  always @(posedge clk) begin
+    if (rst) begin
+      pc <= 32'h00000000;
+    end else begin
+      pc <= next_pc;
+      $display("pc: 0x%08x, inst: 0x%08x", pc, inst);
+    end
+  end
+
+
+  // =========== IDU 例化 ===========
+  wire [4:0] rs1_addr, rs2_addr, rd_addr;
+  wire [31:0] rs1_val, rs2_val, rd_val;
+  wire [31:0] imm;
+  wire add_en, addi_en, lui_en, lw_en, lbu_en, sw_en, sb_en, jalr_en, ebreak_en;
+  wire [11:0] I_imm, S_imm;
+  wire [12:0] B_imm;
+  wire [31:0] U_imm;
+  wire [20:0] J_imm;
+  IDU uIDU (
+    .inst(inst),
+    .rs1_addr(rs1_addr),
+    .rs2_addr(rs2_addr),
+    .rd_addr(rd_addr),
+    .add_en(add_en),
+    .addi_en(addi_en),
+    .lui_en(lui_en),
+    .lw_en(lw_en),
+    .lbu_en(lbu_en),
+    .sw_en(sw_en),
+    .sb_en(sb_en),
+    .jalr_en(jalr_en),
+    .ebreak_en(ebreak_en),
+    .I_imm(I_imm),
+    .S_imm(S_imm),
+    .B_imm(B_imm),
+    .U_imm(U_imm),
+    .J_imm(J_imm)
+  );
+
+
+  // =========== RV_regs 例化 ===========
+  wire reg_write_ena;
+  wire [4:0] reg_write_addr, reg_read_addr1, reg_read_addr2;
+
+  wire [31:0] reg_write_val, reg_addr1_val, reg_addr2_val;
+
+  // A0 输出
+  assign A0 = A0_val;
+  wire [31:0] A0_val;
+
+  // WBU 输入 至 写端口
+  assign reg_write_ena = wb_reg_we;
+  assign reg_write_addr = wb_reg_addr;
+  assign reg_write_val = wb_reg_data;
+
+  // rs1 rs2 的固定读端口
+  assign reg_read_addr1 = rs1_addr;
+  assign reg_read_addr2 = rs2_addr;
+  
+  RV32_regs uRV32_regs (
+    .clk(clk),
+    .write_ena(reg_write_ena),
+    .write_addr(reg_write_addr),
+    .write_val(reg_write_val),
+
+    .read_addr1(reg_read_addr1),
+    .addr1_val(reg_addr1_val),
+
+    .read_addr2(reg_read_addr2),
+    .addr2_val(reg_addr2_val),
+    .A0_val(A0_val)
+  );
+
+
+  // =========== EXU 例化 ===========
+  assign imm =  (addi_en | lw_en | lbu_en | jalr_en) ? {{20{I_imm[11]}}, I_imm} :
+                (lui_en) ? U_imm :
+                (sw_en | sb_en) ? {{20{S_imm[11]}}, S_imm} :
+                32'b0;
+
+  wire [31:0] ex_next_pc;
+  wire [31:0] ex_rs1_val, ex_rs2_val;
+  wire        ex_ram_we, ex_ram_re, ex_reg_we;
+  wire [31:0] ex_ram_write_addr, ex_ram_write_data, ex_ram_read_addr;
+  wire [3:0]  ex_ram_write_mask;
+  wire [31:0] ex_reg_data;
+  wire [4:0]  ex_reg_addr;
+
+  // 寄存器值输入（rs1 rs2 输入）
+  assign ex_rs1_val = reg_addr1_val;
+  assign ex_rs2_val = reg_addr2_val;
+
+  EXU uEXU (
+    .add_en(add_en),
+    .addi_en(addi_en),
+    .lui_en(lui_en),
+    .lw_en(lw_en),
+    .lbu_en(lbu_en),
+    .sw_en(sw_en),
+    .sb_en(sb_en),
+    .jalr_en(jalr_en),
+    .ebreak_en(ebreak_en),
+
+    .rs1_val(ex_rs1_val),
+    .rs2_val(ex_rs2_val),
+    .rd_addr(rd_addr),
+    .ram_read_val(ram_read_data),
+    .imm(imm),
+    .pc(pc),
+    .next_pc(ex_next_pc),
+
+    .ram_we(ex_ram_we),
+    .ram_write_addr(ex_ram_write_addr),
+    .ram_write_data(ex_ram_write_data),
+    .ram_write_mask(ex_ram_write_mask),
+
+    .ram_re(ex_ram_re),
+    .ram_read_addr(ex_ram_read_addr),
+
+    .reg_we(ex_reg_we),
+    .reg_addr(ex_reg_addr),
+    .reg_data(ex_reg_data)
+  );
+
+
+  // =========== WBU 例化 ===========
+  wire wb_reg_we;
+  wire [4:0] wb_reg_addr;
+  wire [31:0] wb_reg_data, wb_next_pc;
+
+  WBU uWBU (
+    .next_pc_EX(ex_next_pc),
+    .reg_we_EX(ex_reg_we),
+    .reg_addr_EX(ex_reg_addr),
+    .reg_data_EX(ex_reg_data),
+
+    .reg_we(wb_reg_we),
+    .reg_addr(wb_reg_addr),
+    .reg_data(wb_reg_data),
+    .next_pc(wb_next_pc)
+  );
+
+
+  // =========== LSU 例化 ===========
+  wire ls_ram_we;
+  wire [31:0] ls_ram_write_addr, ls_ram_write_data;
+  wire [3:0] ls_ram_write_mask;
+
+  wire ls_ram_re;
+  wire [31:0] ls_ram_read_addr;
+
+  LSU uLSU (
+    .ram_we_EX(ex_ram_we),
+    .ram_write_addr_EX(ex_ram_write_addr),
+    .ram_write_data_EX(ex_ram_write_data),
+    .ram_write_mask_EX(ex_ram_write_mask),
+
+    .ram_re_EX(ex_ram_re),
+    .ram_read_addr_EX(ex_ram_read_addr),
+
+    .ram_we(ls_ram_we),
+    .ram_write_addr(ls_ram_write_addr),
+    .ram_write_data(ls_ram_write_data),
+    .ram_write_mask(ls_ram_write_mask),
+
+    .ram_re(ls_ram_re),
+    .ram_read_addr(ls_ram_read_addr)
+  );
+  
+  // =========== RAM 接口处理 ===========
+  reg [31:0] ram_read_data;
+  always @(*) begin
+    if (ls_ram_re | ls_ram_we) begin // 有读写请求时
+      ram_read_data = pmem_read(ls_ram_read_addr);
+      if (ls_ram_re) begin
+        $display("read: %x at M[%x]", ram_read_data, ls_ram_read_addr >> 2);
+      end
+      if (ls_ram_we) begin // 有写请求时
+        pmem_write(ls_ram_write_addr, ls_ram_write_data, {4'd0, ls_ram_write_mask});
+        //$display("write: %x at M[%x] with mask: %b", ls_ram_write_data, ls_ram_write_addr >> 2, ls_ram_write_mask);
+    end
+  end
+    else begin
+      ram_read_data = 0;
+    end
+  end
+
+  
+endmodule

@@ -12,7 +12,10 @@ module RV32_regs (
 
 	// 读端口2
 	input [4:0] read_addr2,
-	output [31:0] addr2_val
+	output [31:0] addr2_val,
+
+	// A0寄存器输出
+	output [31:0] A0_val
 );
 
 	reg [31:0] rv_regs [31:0];
@@ -25,5 +28,6 @@ module RV32_regs (
 
 	assign addr1_val = (read_addr1 != 5'b0) ? rv_regs[read_addr1] : 32'b0;
 	assign addr2_val = (read_addr2 != 5'b0) ? rv_regs[read_addr2] : 32'b0;
+	assign A0_val = rv_regs[10];
 
 endmodule
