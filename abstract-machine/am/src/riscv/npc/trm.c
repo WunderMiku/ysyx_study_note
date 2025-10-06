@@ -1,5 +1,6 @@
 #include <am.h>
 #include <klib-macros.h>
+#include <npc.h>
 
 extern char _heap_start;
 int main(const char *args);
@@ -15,6 +16,8 @@ void putch(char ch) {
 }
 
 void halt(int code) {
+  npc_trap(code);
+  // should not reach here
   while (1);
 }
 

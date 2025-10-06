@@ -10,7 +10,11 @@ module top (
 
   reg [31:0] inst;
   always @(*) begin
+    if(!rst) begin
     inst = pmem_read(pc);
+    end else begin
+      inst = 32'b0;
+    end
   end
 
 
@@ -23,7 +27,7 @@ module top (
 
   always @(posedge clk) begin
     if (rst) begin
-      pc <= 32'h00000000;
+      pc <= 32'h80000000;
     end else begin
       pc <= next_pc;
       $display("pc: 0x%08x, inst: 0x%08x", pc, inst);
@@ -193,19 +197,20 @@ module top (
   
   // =========== RAM 接口处理 ===========
   reg [31:0] ram_read_data;
+  wire [31:0] ram_read_paddr = (ls_ram_read_addr - 32'h80000000) >> 2;
+  wire [31:0] ram_write_paddr = (ls_ram_write_addr - 32'h80000000) >> 2;
   always @(*) begin
-    if (ls_ram_re | ls_ram_we) begin // 有读写请求时
-      ram_read_data = pmem_read(ls_ram_read_addr);
-      if (ls_ram_re) begin
-        $display("read: %x at M[%x]", ram_read_data, ls_ram_read_addr >> 2);
-      end
-      if (ls_ram_we) begin // 有写请求时
-        pmem_write(ls_ram_write_addr, ls_ram_write_data, {4'd0, ls_ram_write_mask});
-        //$display("write: %x at M[%x] with mask: %b", ls_ram_write_data, ls_ram_write_addr >> 2, ls_ram_write_mask);
+    if (ls_ram_re) begin // 有读请求时
+      ram_read_data = pmem_read(ls_ram_read_addr); 
+      $display("read: %x at M[%x]", ram_read_data, ram_read_paddr);
+
+    end else begin
+      ram_read_data = 32'b0;
     end
-  end
-    else begin
-      ram_read_data = 0;
+
+    if (ls_ram_we) begin // 有写请求时
+      pmem_write(ls_ram_write_addr, ls_ram_write_data, {4'd0, ls_ram_write_mask});
+      $display("write: %x at M[%x] with mask: %b", ls_ram_write_data, ram_write_paddr, ls_ram_write_mask);
     end
   end
 
