@@ -24,6 +24,7 @@ static void (*cs_free_dl)(cs_insn *insn, size_t count);
 static csh handle;
 
 void init_disasm() {
+  // 动态链接 capstone 库 
   void *dl_handle;
   dl_handle = dlopen("tools/capstone/repo/libcapstone.so.5", RTLD_LAZY);
   assert(dl_handle);
@@ -38,6 +39,7 @@ void init_disasm() {
   cs_free_dl = dlsym(dl_handle, "cs_free");
   assert(cs_free_dl);
 
+  // 确定采用的架构，模式
   cs_arch arch = MUXDEF(CONFIG_ISA_x86,      CS_ARCH_X86,
                    MUXDEF(CONFIG_ISA_mips32, CS_ARCH_MIPS,
                    MUXDEF(CONFIG_ISA_riscv,  CS_ARCH_RISCV,
@@ -46,6 +48,8 @@ void init_disasm() {
                    MUXDEF(CONFIG_ISA_mips32, CS_MODE_MIPS32,
                    MUXDEF(CONFIG_ISA_riscv,  MUXDEF(CONFIG_ISA64, CS_MODE_RISCV64, CS_MODE_RISCV32) | CS_MODE_RISCVC,
                    MUXDEF(CONFIG_ISA_loongarch32r,  CS_MODE_LOONGARCH32, -1))));
+
+  // 打开 capstone
 	int ret = cs_open_dl(arch, mode, &handle);
   assert(ret == CS_ERR_OK);
 

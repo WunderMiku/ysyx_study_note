@@ -13,6 +13,7 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
+#include "ringbuf.h"
 #include <isa.h>
 #include <memory/paddr.h>
 
@@ -125,6 +126,8 @@ void init_monitor(int argc, char *argv[]) {
 
   /* Initialize the simple debugger. */
   init_sdb();
+
+  init_ringbuf(&inst_ringbuf);
 
   IFDEF(CONFIG_ITRACE, init_disasm());
 

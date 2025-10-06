@@ -130,6 +130,10 @@ config LOG_TO_STDOUT
   bool "Log to stdout"
   default y
 
+config PHYSICAL_MEMORY_LOG
+  bool "enable physical memory log"
+  default y
+
 config WATCHPOINT
   bool "Enable watchpoint"
   default y

@@ -51,14 +51,25 @@ void init_mem() {
 }
 
 word_t paddr_read(paddr_t addr, int len) {
-  if (likely(in_pmem(addr))) return pmem_read(addr, len);
+  if (likely(in_pmem(addr))) {
+    word_t data = pmem_read(addr, len);
+
+    IFDEF(CONFIG_PHYSICAL_MEMORY_LOG,\
+      Log("physical memory" ANSI_FG_CYAN " read [%d bit(s)] " ANSI_FG_YELLOW FMT_WORD ANSI_NONE " from addr " ANSI_FG_GREEN FMT_PADDR ANSI_NONE , len, data, addr));
+    return data;
+  }
   IFDEF(CONFIG_DEVICE, return mmio_read(addr, len));
   out_of_bound(addr);
   return 0;
 }
 
 void paddr_write(paddr_t addr, int len, word_t data) {
-  if (likely(in_pmem(addr))) { pmem_write(addr, len, data); return; }
+  if (likely(in_pmem(addr))) { 
+    IFDEF(CONFIG_PHYSICAL_MEMORY_LOG,\
+      Log("physical memory" ANSI_FG_MAGENTA " write [%d bit(s)] " ANSI_FG_YELLOW FMT_WORD ANSI_NONE " to addr " ANSI_FG_GREEN FMT_PADDR ANSI_NONE , len, data, addr));
+    pmem_write(addr, len, data); 
+    return; 
+  }
   IFDEF(CONFIG_DEVICE, mmio_write(addr, len, data); return);
   out_of_bound(addr);
 }

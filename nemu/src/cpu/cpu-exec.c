@@ -17,6 +17,8 @@
 #include <cpu/decode.h>
 #include <cpu/difftest.h>
 #include <locale.h>
+#include "ringbuf.h"
+#include "utils.h"
 
 /* The assembly code of instructions executed is only output to the screen
  * when the number of instructions executed is less than this value.
@@ -55,7 +57,8 @@ static void exec_once(Decode *s, vaddr_t pc) {
   cpu.pc = s->dnpc;
 #ifdef CONFIG_ITRACE
   char *p = s->logbuf;
-  p += snprintf(p, sizeof(s->logbuf), FMT_WORD ":", s->pc);
+  // 将 pc 写入 logbuf
+  p += snprintf(p, sizeof(s->logbuf), FMT_WORD ":", s->pc); 
   int ilen = s->snpc - s->pc;
   int i;
   uint8_t *inst = (uint8_t *)&s->isa.inst;
@@ -64,8 +67,10 @@ static void exec_once(Decode *s, vaddr_t pc) {
 #else
   for (i = ilen - 1; i >= 0; i --) {
 #endif
+    // 将 指令 写入 logbuf
     p += snprintf(p, 4, " %02x", inst[i]);
   }
+  // logbuf 字符串长度对齐
   int ilen_max = MUXDEF(CONFIG_ISA_x86, 8, 4);
   int space_len = ilen_max - ilen;
   if (space_len < 0) space_len = 0;
@@ -74,8 +79,11 @@ static void exec_once(Decode *s, vaddr_t pc) {
   p += space_len;
 
   void disassemble(char *str, int size, uint64_t pc, uint8_t *code, int nbyte);
+  // 将 反汇编 写入 logbuf
   disassemble(p, s->logbuf + sizeof(s->logbuf) - p,
       MUXDEF(CONFIG_ISA_x86, s->snpc, s->pc), (uint8_t *)&s->isa.inst, ilen);
+
+  ringbuf_put(&inst_ringbuf, s->logbuf);
 #endif
 }
 
@@ -134,5 +142,8 @@ void cpu_exec(uint64_t n) {
     case NEMU_QUIT: 
       delete_all_using_wp(); // 退出时删除所有watchpoint，防止内存泄漏（但实际似乎没什么用处）
       statistic();
+  }
+  if(nemu_state.state == NEMU_ABORT) {
+    ringbuf_print(&inst_ringbuf); 
   }
 }
