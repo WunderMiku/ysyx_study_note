@@ -16,6 +16,7 @@
 #include "ringbuf.h"
 #include <isa.h>
 #include <memory/paddr.h>
+#include "funget.h"
 
 
 void init_rand();

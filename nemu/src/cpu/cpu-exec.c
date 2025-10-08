@@ -19,6 +19,7 @@
 #include <locale.h>
 #include "ringbuf.h"
 #include "utils.h"
+#include "funget.h"
 
 
 /* The assembly code of instructions executed is only output to the screen
