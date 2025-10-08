@@ -6,6 +6,8 @@
 
 RingBuffer inst_ringbuf;
 
+static bool ringbuf_full(RingBuffer *rb);
+
 // 初始化环形缓冲区
 void init_ringbuf(RingBuffer *rb) {
 	assert(rb != NULL);
@@ -47,14 +49,8 @@ void ringbuf_print(RingBuffer *rb) {
 	printf("\n");
 }
 
-// 检查环形缓冲区是否为空
-bool ringbuf_empty(RingBuffer *rb) {
-	assert(rb != NULL);
-	return rb->count == 0;
-}
-
 // 检查环形缓冲区是否已满
-bool ringbuf_full(RingBuffer *rb) {
+static bool ringbuf_full(RingBuffer *rb) {
 	assert(rb != NULL);
 	return rb->count == RINGBUF_SIZE;
 }

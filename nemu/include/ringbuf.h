@@ -25,12 +25,6 @@ void ringbuf_put(RingBuffer *rb, char *data);
 void ringbuf_print(RingBuffer *rb);
 
 
-bool ringbuf_empty(RingBuffer *rb);
-
-
-bool ringbuf_full(RingBuffer *rb);
-
-
 int ringbuf_count(RingBuffer *rb);
 
 

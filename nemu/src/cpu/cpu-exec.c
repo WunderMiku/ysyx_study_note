@@ -20,6 +20,7 @@
 #include "ringbuf.h"
 #include "utils.h"
 
+
 /* The assembly code of instructions executed is only output to the screen
  * when the number of instructions executed is less than this value.
  * This is useful when you use the `si' command.
@@ -41,6 +42,12 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
   if (g_print_step) { IFDEF(CONFIG_ITRACE, puts(_this->logbuf)); }
   IFDEF(CONFIG_DIFFTEST, difftest_step(_this->pc, dnpc));
 
+  // 添加指令到环形缓冲区
+  ringbuf_put(&inst_ringbuf, _this->logbuf);
+  
+  // ftrace 检测与输出
+  IFDEF(CONFIG_FTRACE, funget_detect(_this->pc, cpu.pc, _this->isa.inst));
+
   #ifdef CONFIG_WATCHPOINT
   // 临时修改pc为了让watchpoint模块能正确获取到pc
   vaddr_t nowpc = cpu.pc;
@@ -54,7 +61,7 @@ static void exec_once(Decode *s, vaddr_t pc) {
   s->pc = pc;
   s->snpc = pc;
   isa_exec_once(s);
-  cpu.pc = s->dnpc;
+  cpu.pc = s->dnpc;   // 根据执行结果更新PC
 #ifdef CONFIG_ITRACE
   char *p = s->logbuf;
   // 将 pc 写入 logbuf
@@ -82,8 +89,6 @@ static void exec_once(Decode *s, vaddr_t pc) {
   // 将 反汇编 写入 logbuf
   disassemble(p, s->logbuf + sizeof(s->logbuf) - p,
       MUXDEF(CONFIG_ISA_x86, s->snpc, s->pc), (uint8_t *)&s->isa.inst, ilen);
-
-  ringbuf_put(&inst_ringbuf, s->logbuf);
 #endif
 }
 
