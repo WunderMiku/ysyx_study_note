@@ -69,22 +69,22 @@ void funget_detect(vaddr_t before_pc, vaddr_t pc, uint32_t inst) {
 		fun_get.call_level++;
 		int i = fun_get.call_level - 1;
 		while(i-- > 0) printf(" ");
-		printf(ANSI_FG_GREEN " (Call) " ANSI_NONE ANSI_FG_YELLOW "%s" ANSI_NONE "(%x) -> " ANSI_FG_GREEN "%s"\
-			 ANSI_NONE "(%x)\n",fun_get.funcs[before_fun_index].name, before_pc, fun_get.funcs[fun_index].name, pc);
+		printf(ANSI_FG_GREEN " (Call) " ANSI_NONE ANSI_FG_YELLOW "%s" ANSI_NONE "(0x%x) -> " ANSI_FG_GREEN "%s"\
+			 ANSI_NONE "(0x%x)\n",fun_get.funcs[before_fun_index].name, before_pc, fun_get.funcs[fun_index].name, pc);
 	}
 
 	if(fun_get.is_ret) {
 		fun_get.call_level--;
 		int i = fun_get.call_level - 1;
 		while(i-- > 0) printf(" ");
-		printf(ANSI_FG_YELLOW " (Ret) " ANSI_NONE ANSI_FG_GREEN "%s"ANSI_NONE"(%x) <- " ANSI_FG_YELLOW "%s"\
-			 ANSI_NONE "(%x)\n",fun_get.funcs[fun_index].name, pc, fun_get.funcs[before_fun_index].name, before_pc);
+		printf(ANSI_FG_YELLOW " (Ret) " ANSI_NONE ANSI_FG_GREEN "%s"ANSI_NONE"(0x%x) <- " ANSI_FG_YELLOW "%s"\
+			 ANSI_NONE "(0x%x)\n",fun_get.funcs[fun_index].name, pc, fun_get.funcs[before_fun_index].name, before_pc);
 	}
 
 	if(fun_get.is_move && !fun_get.is_ret) {
 		int i = fun_get.call_level - 1;
 		while(i-- > 0) printf(" ");
-		printf(ANSI_FG_CYAN " (Move) " ANSI_NONE ANSI_FG_BLACK "%s -> %s \n"\
+		printf(ANSI_FG_CYAN " (Jmp) " ANSI_NONE ANSI_FG_BLACK "%s -> %s \n"\
 			,fun_get.funcs[before_fun_index].name, fun_get.funcs[fun_index].name);
 	}
 }
