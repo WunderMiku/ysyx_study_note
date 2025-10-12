@@ -16,6 +16,7 @@ int vsprintf(char *out, const char *fmt, va_list ap) {
 int sprintf(char *out, const char *fmt, ...) { 
   va_list ap;
   int d, ret = 0;
+  unsigned int ud;
   char *s;
   char buf[16];
 
@@ -42,13 +43,15 @@ int sprintf(char *out, const char *fmt, ...) {
         if(d < 0) {
           *out++ = '-';
           ret++;
-          d = -d;
+          ud = -d; // 避免INT_MIN的问题（int不能表示-INT_MIN）
+        } else {
+          ud = d;
         }
         
         int i = 0;
-        while(d) {
-          buf[i++] = (d % 10) + '0';
-          d /= 10;
+        while(ud) {
+          buf[i++] = (ud % 10) + '0';
+          ud /= 10;
         }
         while(i--) {
           *out++ = buf[i];

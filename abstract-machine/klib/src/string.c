@@ -19,6 +19,7 @@ char *strcpy(char *dst, const char *src) {
 char *strncpy(char *dst, const char *src, size_t n) {
   char *ret = dst;
   while (n && (*dst++ = *src++)) n--;
+  if(n != 0) n--; // 如果因\0而终止，n会少减一次
   while (n--) *dst++ = 0;
   return ret;
 }
