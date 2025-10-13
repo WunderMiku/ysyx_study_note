@@ -21,6 +21,8 @@ typedef struct {
 	int call_level;
 } Funcget;
 
+extern bool Elf_Files_Get;
+
 void *parse_string_table(const void *addr);
 
 void parse_symbol_table(const void *addr);

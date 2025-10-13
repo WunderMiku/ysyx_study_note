@@ -72,10 +72,12 @@ static long load_img() {
 IFDEF(CONFIG_FTRACE,
 static void load_elf() {
   if(elf_file == NULL) {
-    Log("No ELF file provided, not performing debugging function parsing.");
+    Log(ANSI_FG_RED "NO ELF file provided, not performing debugging function parsing."ANSI_NONE);
+    Elf_Files_Get = false;
     return;
   }
   get_function(elf_file);
+  Log(ANSI_FG_GREEN "ELF file %s loaded, function parsing completed." ANSI_NONE, elf_file);
   return;
 } )
 

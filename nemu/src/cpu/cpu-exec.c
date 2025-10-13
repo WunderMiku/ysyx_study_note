@@ -47,7 +47,7 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
   ringbuf_put(&inst_ringbuf, _this->logbuf);
   
   // ftrace 检测与输出
-  IFDEF(CONFIG_FTRACE, funget_detect(_this->pc, cpu.pc, _this->isa.inst));
+  if(Elf_Files_Get) {IFDEF(CONFIG_FTRACE, funget_detect(_this->pc, cpu.pc, _this->isa.inst));}
 
   #ifdef CONFIG_WATCHPOINT
   // 临时修改pc为了让watchpoint模块能正确获取到pc

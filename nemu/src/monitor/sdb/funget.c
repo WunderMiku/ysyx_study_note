@@ -14,6 +14,7 @@
 
 
 Funcget fun_get;
+bool Elf_Files_Get = true;
 void funget_detect(vaddr_t before_pc, vaddr_t pc, uint32_t inst) {
 
 	fun_get.is_call = false;
@@ -36,8 +37,6 @@ void funget_detect(vaddr_t before_pc, vaddr_t pc, uint32_t inst) {
 			if(before_pc >= fun_addr && before_pc < fun_endaddr) before_fun_index = i;
 			if(pc >= fun_addr && pc < fun_endaddr) fun_index = i;
 	}
-
-	assert(before_fun_index >= 0 && fun_index >= 0);
 
 	if(inst_opcode == 0x6F) { 
 		if(inst_rd != 0x0) { 	// jal (保存返回值)
@@ -62,7 +61,7 @@ void funget_detect(vaddr_t before_pc, vaddr_t pc, uint32_t inst) {
 	if(!(fun_get.is_call || fun_get.is_ret || fun_get.is_move)) return; // 都不是，不输出
 
 	// 输出部分
-	
+	assert(before_fun_index >= 0 && fun_index >= 0);
 	assert(before_fun_index != fun_index);
 
 	if(fun_get.is_call) {
@@ -148,13 +147,14 @@ void get_function(char *file)
 	// map_addr 指向文件开头，也就是 ELF 头
 	const Elf32_Ehdr *ehdr = (const Elf32_Ehdr *)map_addr;
 	
+	// 验证是否为RV32 ELF文件
 	if(ehdr->e_ident[0] != 0x7f || ehdr->e_ident[1] != 'E' || \
 		 ehdr->e_ident[2] != 'L'  || ehdr->e_ident[3] != 'F') {
 			printf("Not a ELF file\n");
 			close(fd);
+			exit(1);
 		 }
 	
-	// 验证是否为RV32 ELF文件
 	if(ehdr->e_machine != EM_RISCV || ehdr->e_ident[EI_CLASS] != ELFCLASS32) {
 		printf("Not a RV32 ELF file\n");
 		close(fd);
@@ -238,11 +238,11 @@ void parse_symbol_table(const void *addr) {
 
 	for(int j = 0; j < sym_num; j++) {
 		const Elf32_Sym *sym = (const Elf32_Sym *)(sym_base + j * sizeof(Elf32_Sym));
-		if(ELF32_ST_TYPE(sym->st_info) != STT_FUNC) continue;
-		printf("Symbol %d at: %p\n", j, sym);
-		printf("Name: %s\n", (char *)(strtab_base + sym->st_name));
-		printf("Value: %x\n", sym->st_value);
-		printf("Size: %x\n", sym->st_size);
+		if(ELF32_ST_TYPE(sym->st_info) != STT_FUNC) continue; // 只处理函数类型符号
+		// printf("Symbol %d at: %p\n", j, sym);
+		// printf("Name: %s\n", (char *)(strtab_base + sym->st_name));
+		// printf("Value: %x\n", sym->st_value);
+		// printf("Size: %x\n", sym->st_size);
 		funget_set_function((char *)(strtab_base + sym->st_name), sym->st_value, sym->st_size);
 	}	
 }
