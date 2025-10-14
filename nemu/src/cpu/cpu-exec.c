@@ -149,7 +149,7 @@ void cpu_exec(uint64_t n) {
       delete_all_using_wp(); // 退出时删除所有watchpoint，防止内存泄漏（但实际似乎没什么用处）
       statistic();
   }
-  if(nemu_state.state == NEMU_ABORT) {
+  if(nemu_state.state == NEMU_ABORT || (nemu_state.state == NEMU_END && nemu_state.halt_ret != 0)) {
     ringbuf_print(&inst_ringbuf); 
   }
 }

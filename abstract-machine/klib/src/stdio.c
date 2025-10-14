@@ -5,22 +5,12 @@
 
 #if !defined(__ISA_NATIVE__) || defined(__NATIVE_USE_KLIB__)
 
-int printf(const char *fmt, ...) {
-  panic("Not implemented");
-}
-
 int vsprintf(char *out, const char *fmt, va_list ap) {
-  panic("Not implemented");
-}
-
-int sprintf(char *out, const char *fmt, ...) { 
-  va_list ap;
   int d, ret = 0;
   unsigned int ud;
   char *s;
   char buf[16];
 
-  va_start(ap, fmt);
   while(*fmt) {
     if(*fmt != '%') {
       *out++ = *fmt++;
@@ -67,7 +57,7 @@ int sprintf(char *out, const char *fmt, ...) {
         while ((*out++ = *s++)) {
           ret++;
         };
-        ret--; // for the last '\0' added
+        out--, ret--;  // delete the last '\0'
         break;
 
       case '%':
@@ -79,6 +69,28 @@ int sprintf(char *out, const char *fmt, ...) {
     }
   }
   *out = 0; // add '\0'
+  return ret;
+}
+
+
+int printf(const char *fmt, ...) {
+  char out[1024];
+  va_list ap;
+  va_start(ap, fmt);
+  int ret = vsprintf(out, fmt, ap);
+  va_end(ap);
+
+  for (char *p = out; *p; p++) {
+    putch(*p);
+  }
+
+  return ret;
+}
+
+int sprintf(char *out, const char *fmt, ...) { 
+  va_list ap;
+  va_start(ap, fmt);
+  int ret = vsprintf(out, fmt, ap);
   va_end(ap);
   return ret;
 }

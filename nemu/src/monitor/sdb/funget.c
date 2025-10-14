@@ -100,7 +100,7 @@ void funget_set_function(char *name, Elf32_Addr addr, Elf32_Word size) {
 	fun_get.funcs[fun_get.func_num].addr = addr;
 	fun_get.funcs[fun_get.func_num].size = size;
 	fun_get.func_num++;
-	Log("%d | Function %s at: 0x%x, size: %x\n", fun_get.func_num - 1, fun_get.funcs[fun_get.func_num - 1].name, fun_get.funcs[fun_get.func_num - 1].addr, fun_get.funcs[fun_get.func_num - 1].size);
+	// Log("%d | Function %s at: 0x%x, size: %x\n", fun_get.func_num - 1, fun_get.funcs[fun_get.func_num - 1].name, fun_get.funcs[fun_get.func_num - 1].addr, fun_get.funcs[fun_get.func_num - 1].size);
 }
 
 
