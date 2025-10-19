@@ -58,6 +58,9 @@ word_t map_read(paddr_t addr, int len, IOMap *map) {
   paddr_t offset = addr - map->low;
   invoke_callback(map->callback, offset, len, false); // prepare data to read
   word_t ret = host_read(map->space + offset, len);
+  IFDEF(CONFIG_DTRACE,\
+    printf("[%s] " ANSI_FG_CYAN " read data " ANSI_FG_YELLOW FMT_WORD ANSI_NONE " from addr: " ANSI_FG_GREEN FMT_PADDR ANSI_NONE " at pc = " FMT_WORD "\n", map->name, ret, addr, cpu.pc);)
+  
   return ret;
 }
 
@@ -66,5 +69,8 @@ void map_write(paddr_t addr, int len, word_t data, IOMap *map) {
   check_bound(map, addr);
   paddr_t offset = addr - map->low;
   host_write(map->space + offset, len, data);
+  IFDEF(CONFIG_DTRACE,\
+    printf("[%s] "  ANSI_FG_MAGENTA " write data " ANSI_FG_YELLOW  FMT_WORD ANSI_NONE " from addr: " ANSI_FG_GREEN FMT_PADDR ANSI_NONE" at pc = " FMT_WORD "\n", map->name, data, addr, cpu.pc);)
+  
   invoke_callback(map->callback, offset, len, true);
 }

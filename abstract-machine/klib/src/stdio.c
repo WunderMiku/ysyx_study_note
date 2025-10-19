@@ -278,7 +278,15 @@ int vsprintf(char *out, const char *fmt, va_list ap) {
         };
         out--, ret--;  // delete the last '\0'
         break;
-
+        
+      case 'c':
+        *out++ = va_arg(ap, int);
+        ret++;
+        filled_zeros = false;
+        width = 0;
+        width_buf[0] = 0;
+        break;
+        
       case '%':
         *out++ = '%';
         ret++;

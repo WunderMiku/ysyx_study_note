@@ -1,9 +1,14 @@
 #include <am.h>
 #include <klib.h>
 #include <klib-macros.h>
+#include <stdint.h>
+#include <stdalign.h>
 
 #if !defined(__ISA_NATIVE__) || defined(__NATIVE_USE_KLIB__)
 static unsigned long int next = 1;
+
+#define ALIGN_UP(addr, align) (((addr) + (align) - 1) & ~((align) - 1))
+void *addr = NULL;
 
 int rand(void) {
   // RAND_MAX assumed to be 32767
@@ -34,12 +39,19 @@ void *malloc(size_t size) {
   // Therefore do not call panic() here, else it will yield a dead recursion:
   //   panic() -> putchar() -> (glibc) -> malloc() -> panic()
 #if !(defined(__ISA_NATIVE__) && defined(__NATIVE_USE_KLIB__))
-  panic("Not implemented");
+  if (addr == NULL) {
+    addr = heap.start;
+  } 
+  void *ret = addr;
+
+  addr = (void *)ALIGN_UP((uintptr_t)addr + size, alignof(max_align_t));
+  return ret;
 #endif
   return NULL;
 }
 
 void free(void *ptr) {
+  return;
 }
 
 #endif

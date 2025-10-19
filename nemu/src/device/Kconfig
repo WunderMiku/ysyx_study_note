@@ -151,4 +151,8 @@ config SDCARD_IMG_PATH
 endif # HAS_SDCARD
 endif
 
+config DTRACE
+  bool "Enable dtrace"
+  default y
+
 endif # DEVICE

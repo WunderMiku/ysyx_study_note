@@ -55,7 +55,7 @@ word_t paddr_read(paddr_t addr, int len) {
     word_t data = pmem_read(addr, len);
 
     IFDEF(CONFIG_PHYSICAL_MEMORY_LOG,\
-      Log("physical memory" ANSI_FG_CYAN " read [%d bit(s)] " ANSI_FG_YELLOW FMT_WORD ANSI_NONE " from addr " ANSI_FG_GREEN FMT_PADDR ANSI_NONE , len, data, addr));
+      printf("physical memory" ANSI_FG_CYAN " read [%d bit(s)] " ANSI_FG_YELLOW FMT_WORD ANSI_NONE " from addr " ANSI_FG_GREEN FMT_PADDR ANSI_NONE "at pc = 0x%08x\n", len, data, addr, cpu.pc));
     return data;
   }
   IFDEF(CONFIG_DEVICE, return mmio_read(addr, len));
@@ -66,7 +66,7 @@ word_t paddr_read(paddr_t addr, int len) {
 void paddr_write(paddr_t addr, int len, word_t data) {
   if (likely(in_pmem(addr))) { 
     IFDEF(CONFIG_PHYSICAL_MEMORY_LOG,\
-      Log("physical memory" ANSI_FG_MAGENTA " write [%d bit(s)] " ANSI_FG_YELLOW FMT_WORD ANSI_NONE " to addr " ANSI_FG_GREEN FMT_PADDR ANSI_NONE , len, data, addr));
+      printf("physical memory" ANSI_FG_MAGENTA " write [%d bit(s)] " ANSI_FG_YELLOW FMT_WORD ANSI_NONE " to addr " ANSI_FG_GREEN FMT_PADDR ANSI_NONE "at pc = 0x%08x\n", len, data, addr, cpu.pc));
     pmem_write(addr, len, data); 
     return; 
   }
