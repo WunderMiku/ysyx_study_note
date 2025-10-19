@@ -44,7 +44,7 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
   IFDEF(CONFIG_DIFFTEST, difftest_step(_this->pc, dnpc));
 
   // 添加指令到环形缓冲区
-  ringbuf_put(&inst_ringbuf, _this->logbuf);
+  IFDEF(CONFIG_ITRACE,ringbuf_put(&inst_ringbuf, _this->logbuf);)
   
   // ftrace 检测与输出
   if(Elf_Files_Get) {IFDEF(CONFIG_FTRACE, funget_detect(_this->pc, cpu.pc, _this->isa.inst));}
@@ -150,6 +150,6 @@ void cpu_exec(uint64_t n) {
       statistic();
   }
   if(nemu_state.state == NEMU_ABORT || (nemu_state.state == NEMU_END && nemu_state.halt_ret != 0)) {
-    ringbuf_print(&inst_ringbuf); 
+    IFDEF(CONFIG_ITRACE,ringbuf_print(&inst_ringbuf); )
   }
 }
