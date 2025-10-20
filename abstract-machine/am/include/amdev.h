@@ -1,6 +1,7 @@
 #ifndef __AMDEV_H__
 #define __AMDEV_H__
 
+#include "am.h"
 #include <stdbool.h>
 #include <stdint.h>
 
