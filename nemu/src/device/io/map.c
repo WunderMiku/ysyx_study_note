@@ -13,6 +13,7 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
+#include "debug.h"
 #include <isa.h>
 #include <memory/host.h>
 #include <memory/vaddr.h>
@@ -23,6 +24,7 @@
 static uint8_t *io_space = NULL;
 static uint8_t *p_space = NULL;
 
+// 单位为字节（8bits）
 uint8_t* new_space(int size) {
   uint8_t *p = p_space;
   // page aligned;
@@ -59,7 +61,7 @@ word_t map_read(paddr_t addr, int len, IOMap *map) {
   invoke_callback(map->callback, offset, len, false); // prepare data to read
   word_t ret = host_read(map->space + offset, len);
   IFDEF(CONFIG_DTRACE,\
-    printf("[%s] " ANSI_FG_CYAN " read data " ANSI_FG_YELLOW FMT_WORD ANSI_NONE " from addr: " ANSI_FG_GREEN FMT_PADDR ANSI_NONE " at pc = " FMT_WORD "\n", map->name, ret, addr, cpu.pc);)
+    Log("[%s] " ANSI_FG_CYAN " read data " ANSI_FG_YELLOW FMT_WORD ANSI_NONE " from addr: " ANSI_FG_GREEN FMT_PADDR ANSI_NONE " at pc = " FMT_WORD , map->name, ret, addr, cpu.pc);)
   
   return ret;
 }
@@ -70,7 +72,7 @@ void map_write(paddr_t addr, int len, word_t data, IOMap *map) {
   paddr_t offset = addr - map->low;
   host_write(map->space + offset, len, data);
   IFDEF(CONFIG_DTRACE,\
-    printf("[%s] "  ANSI_FG_MAGENTA " write data " ANSI_FG_YELLOW  FMT_WORD ANSI_NONE " from addr: " ANSI_FG_GREEN FMT_PADDR ANSI_NONE" at pc = " FMT_WORD "\n", map->name, data, addr, cpu.pc);)
+    Log("[%s] " ANSI_FG_MAGENTA " write data " ANSI_FG_YELLOW  FMT_WORD ANSI_NONE " from addr: " ANSI_FG_GREEN FMT_PADDR ANSI_NONE" at pc = " FMT_WORD , map->name, data, addr, cpu.pc);)
   
   invoke_callback(map->callback, offset, len, true);
 }
