@@ -44,6 +44,9 @@ gdb: run-env
 count: 
 	@echo "Total : $$(grep -rch . --include="*.c" --include="*.h" | paste -sd+ | bc) lines of C code"
 
+syms: $(BINARY)
+	readelf -s $(BINARY)
+
 clean-tools = $(dir $(shell find ./tools -maxdepth 2 -mindepth 2 -name "Makefile"))
 $(clean-tools):
 	-@$(MAKE) -s -C $@ clean
