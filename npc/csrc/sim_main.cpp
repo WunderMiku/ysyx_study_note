@@ -7,6 +7,8 @@
 #include "verilated_fst_c.h"
 #include "verilatedos.h"
 #include "svdpi.h"
+#include "../include/npc.h"
+
 
 #define COLOR_RED   "\033[1;31m"
 #define COLOR_GREEN "\033[1;32m"
@@ -143,23 +145,29 @@ static void reset(Vtop *dut) {
 	dut->rst = 1;
 	single_cycle(dut);
 	dut->rst = 0;
+	get_time();
 }
-
 extern "C" int pmem_read(int raddr) {
 	// printf("read: %x at M[%x]\n", M[raddr >> 2], raddr);
 	if(raddr < MEM_BASE || raddr >= MEM_BASE + MEM_SIZE) {
-		printf("读访问地址越界: %x\n", raddr);
-		assert(0);
+		return device_read(raddr);
+		// printf("读访问地址越界: %x\n", raddr);
+		// assert(0);
 	}
 	uint32_t vaddr = raddr - MEM_BASE;
 	//printf("read: %x at M[%x]\n", M[vaddr >> 2], vaddr);
   return M[vaddr >> 2];
 }
 extern "C" void pmem_write(int waddr, int wdata, char wmask) {
-	if(waddr < MEM_BASE || waddr >= MEM_BASE + MEM_SIZE) {
+	if((waddr < MEM_BASE || waddr >= MEM_BASE + MEM_SIZE) && waddr != SERIAL_PORT) {
 		printf("写访问地址越界: %x\n", waddr);
 		assert(0);
 	}
+	if(waddr == SERIAL_PORT) {
+		putchar(wdata);
+		return;
+	}
+
 	uint32_t vaddr = waddr - MEM_BASE;
   uint32_t current = M[vaddr >> 2];
   uint32_t byte_mask = 0;
@@ -170,9 +178,12 @@ extern "C" void pmem_write(int waddr, int wdata, char wmask) {
 	if (wmask & 0x4) byte_mask |= 0x00FF0000;
 	if (wmask & 0x8) byte_mask |= 0xFF000000;
 
-	// printf("Before: M[%x]: %x\n", vaddr >> 2, current);
+	uint32_t wdata_ = (current & ~byte_mask) | (wdata & byte_mask);
 
-	M[vaddr >> 2] = (current & ~byte_mask) | (wdata & byte_mask);
+	// printf("Before: M[%x]: %x\n", vaddr >> 2, current);
+	
+
+	M[vaddr >> 2] = wdata_;
 	// printf("write: addr: %x, data: %x, mask: %b\n", vaddr >> 2, wdata, wmask);
 	// printf("result: M[%x]: %x\n",vaddr >> 2, M[vaddr >> 2]);
 }
