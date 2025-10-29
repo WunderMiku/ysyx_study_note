@@ -1,13 +1,26 @@
 module top (
   input clk,
   input rst,
-  output [31:0] A0
+  output [31:0] A0,
+
+  output [31:0] out_pc,
+
+  // Ram 接口
+  input reg [31:0] ramReadData,
+  output [31:0] ramReadAddr,
+  output ramRe,
+
+  output [31:0] ramWriteAddr,
+  output [31:0] ramWriteData,
+  output [3:0]  ramWriteMask,
+  output ramWe
 );
   // =========== IFU实现 ===========
   import "DPI-C" function int pmem_read(input int raddr);
   import "DPI-C" function void pmem_write(
     input int waddr, input int wdata, input byte wmask);
 
+  // =========== PC 接口实现 ===========
   reg [31:0] inst;
   always @(*) begin
     if(!rst) begin
@@ -17,7 +30,7 @@ module top (
     end
   end
 
-
+  assign out_pc = pc;
   // =========== PC 寄存器实现 ===========
   reg  [31:0] pc;
   wire [31:0] next_pc;
@@ -132,7 +145,7 @@ module top (
     .rs1_val(ex_rs1_val),
     .rs2_val(ex_rs2_val),
     .rd_addr(rd_addr),
-    .ram_read_val(ram_read_data),
+    .ram_read_val(ramReadData),
     .imm(imm),
     .pc(pc),
     .next_pc(ex_next_pc),
@@ -196,25 +209,12 @@ module top (
   );
   
   // =========== RAM 接口处理 ===========
-  reg [31:0] ram_read_data;
-  wire [31:0] ram_read_paddr = (ls_ram_read_addr - 32'h80000000) >> 2;
-  wire [31:0] ram_write_paddr = (ls_ram_write_addr - 32'h80000000) >> 2;
-  always @(posedge clk) begin
-    if (ls_ram_re) begin // 有读请求时
-      ram_read_data = pmem_read(ls_ram_read_addr); 
-      // $display("read: %x at M[%x]", ram_read_data, ram_read_paddr);
+  assign ramReadAddr = ls_ram_read_addr;
+  assign ramRe = ls_ram_re;
 
-    end else begin
-      ram_read_data = 32'b0;
-    end
-
-    if (ls_ram_we) begin // 有写请求时
-      pmem_write(ls_ram_write_addr, ls_ram_write_data, {4'd0, ls_ram_write_mask});
-      // $display("write: %x at M[%x] with mask: %b", ls_ram_write_data, ram_write_paddr, ls_ram_write_mask);
-    end
-  end
-
-  
-
+  assign ramWriteAddr = ls_ram_write_addr;
+  assign ramWriteData = ls_ram_write_data;
+  assign ramWriteMask = ls_ram_write_mask;
+  assign ramWe = ls_ram_we;
   
 endmodule

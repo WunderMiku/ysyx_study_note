@@ -1,5 +1,6 @@
 #include "../include/npc.h"
 #include <assert.h>
+#include <stdio.h>
 
 typedef enum {
 	Sec = 2,
@@ -24,7 +25,7 @@ int device_read(int raddr) {
 		}
 	}
 	
-	if(raddr >= RTC_ADDR + 8 || raddr <= RTC_ADDR + 28) {
+	if(raddr >= RTC_ADDR + 8 && raddr <= RTC_ADDR + 28) {
 		tm time_info = get_realtime();
 		for(int i = 2; i < 8; i++) {
 			if(raddr == RTC_ADDR + 4 * i) {
@@ -45,6 +46,8 @@ int device_read(int raddr) {
 				break;
 			}
 		}
-	} 
+	}
+	// 不属于任何设备寄存器，即非法访存
+	printf("invalid device read address: 0x%08x\n", raddr);
 	assert(0); 
 }

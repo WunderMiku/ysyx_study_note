@@ -110,10 +110,18 @@ int main(int argc, char** argv) {
 	// while(i < MAX_SIM_TIME) {
 	while(1){
 		// nvboard_update();
-		single_cycle(dut.get());
-		contextp->timeInc(1);
-		tfp->dump(contextp->time());
-		i++;
+
+		// Ram 接口处理
+		if(dut->ramRe) { // ram读
+			//printf("ram读: M[%x]\n", dut->ramReadAddr);
+			dut->ramReadData = pmem_read(dut->ramReadAddr);
+		}
+
+		if(dut->ramWe) { // ram写
+			//printf("ram写: M[%x]\n", dut->ramWriteAddr);
+			pmem_write(dut->ramWriteAddr, dut->ramWriteData, dut->ramWriteMask);
+		}
+
 		// 检测是否结束
 		svBit flag;
 		dut->ebreak_get(&flag); 
@@ -125,12 +133,16 @@ int main(int argc, char** argv) {
 			}
 			break;
 		}
+		// 电路步进
+		single_cycle(dut.get());
+		contextp->timeInc(1);
+		tfp->dump(contextp->time());
+		i++;
 	}
 
 	dut->final();
 	tfp->close();
   // nvboard_quit();
-	
 
 	return 0;
 }
@@ -145,17 +157,18 @@ static void reset(Vtop *dut) {
 	dut->rst = 1;
 	single_cycle(dut);
 	dut->rst = 0;
+	dut->eval();
 	get_time();
 }
 extern "C" int pmem_read(int raddr) {
-	// printf("read: %x at M[%x]\n", M[raddr >> 2], raddr);
 	if(raddr < MEM_BASE || raddr >= MEM_BASE + MEM_SIZE) {
+		// printf("尝试设备访问: %x\n", raddr);
 		return device_read(raddr);
 		// printf("读访问地址越界: %x\n", raddr);
 		// assert(0);
 	}
 	uint32_t vaddr = raddr - MEM_BASE;
-	//printf("read: %x at M[%x]\n", M[vaddr >> 2], vaddr);
+	// printf("read: %x at M[%x]\n", M[vaddr >> 2], vaddr);
   return M[vaddr >> 2];
 }
 extern "C" void pmem_write(int waddr, int wdata, char wmask) {
