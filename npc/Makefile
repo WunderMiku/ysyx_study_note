@@ -1,7 +1,7 @@
 TOPNAME = top
 NXDC_FILES = constr/top.nxdc
 INC_PATH ?= $(NPC_HOME)/include
-SIM_ARGS ?=
+SIM_ARGS ?= ./resource/default.bin
 
 ifeq ($(VERILATOR_ROOT),)
 VERILATOR = verilator
@@ -26,7 +26,10 @@ $(SRC_AUTO_BIND): $(NXDC_FILES)
 
 # project source
 CSRCS = $(shell find $(abspath ./csrc) -name "*.c" -or -name "*.cc" -or -name "*.cpp")
+INC_PATH += $(shell find $(NPC_HOME)/include -type d)
 VSRCS := $(wildcard vsrc/*.v) $(wildcard vsrc/*.sv)
+
+LDFLAGS += -lreadline
 #CSRCS += $(SRC_AUTO_BIND) // 暂时禁用自动绑定
 
 # rules for NVBoard
