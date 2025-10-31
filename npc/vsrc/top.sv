@@ -3,8 +3,6 @@ module top (
   input rst,
   output [31:0] A0,
 
-  output [31:0] out_pc,
-
   // Ram 接口
   input reg [31:0] ramReadData,
   output [31:0] ramReadAddr,
@@ -13,10 +11,14 @@ module top (
   output [31:0] ramWriteAddr,
   output [31:0] ramWriteData,
   output [3:0]  ramWriteMask,
-  output ramWe
+  output ramWe,
+
+  // Sdb 接口
+  output [31:0] out_pc,
+  output [31:0] out_reg [31:0]
 );
   // =========== IFU实现 ===========
-  import "DPI-C" function int pmem_read(input int raddr);
+  import "DPI-C" function int pmem_read(input int raddr, input int len);
   import "DPI-C" function void pmem_write(
     input int waddr, input int wdata, input byte wmask);
 
@@ -24,7 +26,7 @@ module top (
   reg [31:0] inst;
   always @(*) begin
     if(!rst) begin
-    inst = pmem_read(pc);
+    inst = pmem_read(pc, 4);
     end else begin
       inst = 32'b0;
     end
@@ -109,7 +111,8 @@ module top (
 
     .read_addr2(reg_read_addr2),
     .addr2_val(reg_addr2_val),
-    .A0_val(A0_val)
+    .A0_val(A0_val),
+    .reg_val(out_reg)
   );
 
 

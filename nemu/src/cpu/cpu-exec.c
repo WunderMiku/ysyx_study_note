@@ -17,6 +17,7 @@
 #include <cpu/decode.h>
 #include <cpu/difftest.h>
 #include <locale.h>
+#include "debug.h"
 #include "ringbuf.h"
 #include "utils.h"
 #include "funget.h"
@@ -151,5 +152,6 @@ void cpu_exec(uint64_t n) {
   }
   if(nemu_state.state == NEMU_ABORT || (nemu_state.state == NEMU_END && nemu_state.halt_ret != 0)) {
     IFDEF(CONFIG_ITRACE,ringbuf_print(&inst_ringbuf); )
+    Assert(cond, format, ...)
   }
 }

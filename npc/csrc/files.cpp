@@ -18,21 +18,21 @@ void loadFile(int argc, char** argv) {
 	if (file) {
 		// 计算文件大小
 		fseek(file, 0, SEEK_END);
-		long file_size = ftell(file);
+		long fileSize = ftell(file);
 		rewind(file);
 		
 		// 确保不会超出M数组的大小
-		size_t words_to_read = file_size / sizeof(uint32_t);
-		if (words_to_read > MEM_SIZE) {
-			printf("文件过大，无法加载到内存中,你需要%zu\n", words_to_read);
+		size_t wordsToRead = fileSize / sizeof(uint32_t);
+		if (wordsToRead > MEM_SIZE) {
+			printf("文件过大，无法加载到内存中,你需要%zu\n", wordsToRead);
 			exit(1);
 		}
 		
 		// 读取数据到M数组
-		size_t read_words = fread(M, sizeof(uint32_t), words_to_read, file);
+		size_t readWords = fread(M, sizeof(uint32_t), wordsToRead, file);
 		fclose(file);
 		
-		printf(COLOR_GREEN "成功加载 %ld 字节 (%zu 个32位字) 到内存\n" COLOR_NONE , read_words * sizeof(uint32_t), read_words);
+		printf(COLOR_GREEN "成功加载 %ld 字节 (%zu 个32位字) 到内存\n" COLOR_NONE , readWords * sizeof(uint32_t), readWords);
 	} else {
 		printf(COLOR_RED "无法打开文件: %s\n" COLOR_NONE , argv[2]);
 		exit(1);

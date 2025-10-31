@@ -15,7 +15,10 @@ module RV32_regs (
 	output [31:0] addr2_val,
 
 	// A0寄存器输出
-	output [31:0] A0_val
+	output [31:0] A0_val,
+
+	// 所有寄存器输出 (sdb调试使用)
+	output [31:0] reg_val [31:0]
 );
 
 	reg [31:0] rv_regs [31:0];
@@ -29,5 +32,13 @@ module RV32_regs (
 	assign addr1_val = (read_addr1 != 5'b0) ? rv_regs[read_addr1] : 32'b0;
 	assign addr2_val = (read_addr2 != 5'b0) ? rv_regs[read_addr2] : 32'b0;
 	assign A0_val = rv_regs[10];
+
+  // ================ 输出所有寄存器值 (sdb调试使用) ================
+	genvar i;
+	generate
+		for (i = 0; i < 32; i = i + 1) begin : reg_assign
+			assign reg_val[i] = rv_regs[i];
+		end
+	endgenerate
 
 endmodule

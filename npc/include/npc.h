@@ -1,6 +1,7 @@
 #ifndef __NPC_H__
 #define __NPC_H__
 
+#include "Vtop.h"
 #include "verilatedos.h"
 #include <stdint.h>
 
@@ -14,7 +15,21 @@
 #define SERIAL_PORT  0x10000000
 #define RTC_ADDR     0x10000060
 
+typedef enum {
+	NPC_RUNNING = 0,
+	NPC_END,
+	NPC_QUIT,
+	NPC_ABORT
+} NpcStateType;
+
+typedef struct {
+  NpcStateType state;
+} NpcState;
+
+extern NpcState npcState;
+extern std::unique_ptr<Vtop> dut;
+
 extern vluint32_t* M;
-int exec(int n);
+void cpuExec(uint32_t n);
 
 #endif // NPC_H__
