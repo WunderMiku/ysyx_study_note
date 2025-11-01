@@ -22,7 +22,6 @@ module top (
   import "DPI-C" function void pmem_write(
     input int waddr, input int wdata, input byte wmask);
 
-  // =========== PC 接口实现 ===========
   reg [31:0] inst;
   always @(*) begin
     if(!rst) begin

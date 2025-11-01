@@ -2,6 +2,7 @@ TOPNAME = top
 NXDC_FILES = constr/top.nxdc
 INC_PATH ?= $(NPC_HOME)/include
 SIM_ARGS ?= ./resource/default.bin
+ELF_PATH ?= $(NPC_HOME)/resource/default.elf
 
 ifeq ($(VERILATOR_ROOT),)
 VERILATOR = verilator
@@ -35,6 +36,13 @@ LDFLAGS += -lreadline
 # rules for NVBoard
 include $(NVBOARD_HOME)/scripts/nvboard.mk
 
+# rules for capstone
+LIBCAPSTONE = $(NPC_HOME)/tools/capstone/repo/libcapstone.so.5
+INC_PATH += $(NPC_HOME)/tools/capstone/repo/include
+csrc/utils/disasm.c: $(LIBCAPSTONE)
+$(LIBCAPSTONE):
+	$(MAKE) -C tools/capstone
+
 # rules for verilator
 INCFLAGS = $(addprefix -I, $(INC_PATH))
 CXXFLAGS += $(INCFLAGS) -DTOP_NAME="\"V$(TOPNAME)\""
@@ -47,11 +55,12 @@ $(BIN): $(VSRCS) $(CSRCS) $(NVBOARD_ARCHIVE)
 		$(addprefix -CFLAGS , $(CXXFLAGS)) $(addprefix -LDFLAGS , $(LDFLAGS)) \
 		--Mdir $(OBJ_DIR) --exe -o $(abspath $(BIN))
 
+
 all: sim
 	
 sim: $(BIN)
 	$(call git_commit, "sim RTL") # DO NOT REMOVE THIS LINE!!!
-	@$^ +trace $(SIM_ARGS)
+	@$^ +trace $(SIM_ARGS) $(ELF_PATH)
 
 clean:
 	-rm -rf obj_dir logs *.log *.dmp *.vpd coverage.dat core $(BUILD_DIR)

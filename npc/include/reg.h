@@ -11,5 +11,6 @@ static inline int check_reg_idx(int idx) {
 #define gpr(idx) (dut->out_reg[check_reg_idx(idx)])
 
 void isa_reg_display();
+uint32_t isa_reg_str2val(const char *s, bool *success);
 
 #endif

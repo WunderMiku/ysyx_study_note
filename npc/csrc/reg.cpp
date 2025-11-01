@@ -17,31 +17,31 @@ void isa_reg_display() {
   }
 }
 
-// word_t isa_reg_str2val(const char *s, bool *success) {
-//   if(success == NULL) {
-//     assert(0 &&"success is NULL!");
-//     return 0;
-//   }
+uint32_t isa_reg_str2val(const char *s, bool *success) {
+  if(success == NULL) {
+    assert(0 &&"success is NULL!");
+    return 0;
+  }
 
-//   if(s == NULL) {
-//     assert(0 && "reg_name is NULL!");
-//     *success = false;
-//     return 0;
-//   }
+  if(s == NULL) {
+    assert(0 && "reg_name is NULL!");
+    *success = false;
+    return 0;
+  }
 
-//   for (int i = 0; i < ARRLEN(regs); i++) {
-//     if(strcmp(regs[i], s) == 0) {
-//       *success = true;
-//       return gpr(i);
-//     }
-//   }
+  for (int i = 0; i < ARRLEN(regs); i++) {
+    if(strcmp(regs[i], s) == 0) {
+      *success = true;
+      return gpr(i);
+    }
+  }
 
-//   if(strcmp("pc", s) == 0) {
-//     *success = true;
-//     return cpu.pc;
-//   }
+  if(strcmp("pc", s) == 0) {
+    *success = true;
+    return dut->out_pc;
+  }
   
-//   Log("Unknown regs.");
-//   *success = false;
-//   return 0;
-// }
+  printf("Unknown regs.\n");
+  *success = false;
+  return 0;
+}

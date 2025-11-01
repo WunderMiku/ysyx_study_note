@@ -1,3 +1,4 @@
+#include "debug.h"
 #include "npc.h"
 #include "device.h"
 #include <cassert>
@@ -48,4 +49,8 @@ int paddr_read(int raddr, int len) {
 		assert(0);	
 	}
 	return pmem_read(raddr, len);
+}
+
+uint32_t fetchInst(uint32_t pc) {
+	return pmem_read(pc, 4);
 }

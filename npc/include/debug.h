@@ -16,17 +16,12 @@
 #ifndef __DEBUG_H__
 #define __DEBUG_H__
 
-#define ANSI_FMT(str, fmt) fmt str ANSI_NONE
-
-#define Log(format, ...) \
-    _Log(ANSI_FMT("[%s:%d %s] " format, ANSI_FG_BLUE) "\n", \
-        __FILE__, __LINE__, __func__, ## __VA_ARGS__)
+#define ANSI_FMT(str, fmt) fmt str COLOR_NONE
 
 #define Assert(cond, format, ...) \
   do { \
     if (!(cond)) { \
-      fflush(stdout), fprintf(stderr, ANSI_FMT(format, ANSI_FG_RED) "\n", ##  __VA_ARGS__); \
-      extern FILE* log_fp; fflush(log_fp); \
+      fflush(stdout), fprintf(stderr, ANSI_FMT(format, COLOR_RED) "\n", ##  __VA_ARGS__); \
       assert(cond); \
     } \
   } while (0)

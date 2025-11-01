@@ -8,6 +8,9 @@
 !*.sv
 !*.cc
 !*.cpp
+!*.h
+!*.nxdc
 !.gitignore
 !README.md
+!resources/*
 build/
