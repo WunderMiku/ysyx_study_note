@@ -53,7 +53,7 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
   // 临时修改pc为了让watchpoint模块能正确获取到pc
   vaddr_t nowpc = cpu.pc;
   cpu.pc = _this->pc;
-  scan_all_using_wp();
+  check_all_using_wp();
   cpu.pc = nowpc;
   #endif
 }

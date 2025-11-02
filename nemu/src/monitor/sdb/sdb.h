@@ -36,7 +36,7 @@ typedef struct watchpoint {
 
 } WP;
 
-void scan_all_using_wp();
+void check_all_using_wp();
 void list_all_using_wp();
 void delete_all_using_wp();
 WP *new_wp(char *, uint32_t, bool *, bool);

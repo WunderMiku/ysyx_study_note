@@ -3,6 +3,11 @@ NXDC_FILES = constr/top.nxdc
 INC_PATH ?= $(NPC_HOME)/include
 SIM_ARGS ?= ./resource/default.bin
 ELF_PATH ?= $(NPC_HOME)/resource/default.elf
+BATMODE  ?= false
+
+ifeq ($(BATMODE), true)
+CXXFLAGS += -DBATMODE
+endif
 
 ifeq ($(VERILATOR_ROOT),)
 VERILATOR = verilator
@@ -60,6 +65,9 @@ all: sim
 	
 sim: $(BIN)
 	$(call git_commit, "sim RTL") # DO NOT REMOVE THIS LINE!!!
+	@if [ "$(BATMODE)" = "true" ]; then \
+		echo "-- Running in bat mode --"; \
+	fi
 	@$^ +trace $(SIM_ARGS) $(ELF_PATH)
 
 clean:

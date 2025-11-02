@@ -4,6 +4,7 @@
 #include "npc.h"
 #include "reg.h"
 #include "ram.h"
+#include "watchpoint.h"
 #include "sdb.h"
 #include <macro.h>
 
@@ -46,11 +47,11 @@ static int cmd_x(char *args);
 
 static int cmd_exp(char *args);
 
-// static int cmd_w(char* args);
+static int cmd_w(char* args);
 
-// static int cmd_d(char* args);
+static int cmd_d(char* args);
 
-// static int cmd_b(char* args);
+static int cmd_b(char* args);
 
 
 static struct {
@@ -65,9 +66,9 @@ static struct {
   { "info", "Print information, r: register status, w: watchpoint information", cmd_info},
   {"x", "Scan memory", cmd_x},
   {"exp", "tmp, just test exper", cmd_exp},
-  // {"w", "add watchpoint", cmd_w},
-  // {"d", "delete watchpoint", cmd_d},
-  // {"b", "set breakpoint", cmd_b}
+  {"w", "add watchpoint", cmd_w},
+  {"d", "delete watchpoint", cmd_d},
+  {"b", "set breakpoint", cmd_b}
 
   /* TODO: Add more commands */
 
@@ -165,7 +166,7 @@ static int cmd_info(char *args) {
       isa_reg_display();
     } else 
     if (strcmp(arg, "w") == 0) {
-      // list_all_using_wp();
+      list_all_using_wp();
     } else {
       printf("USAGE : info r /  info w \n");
     }
@@ -349,121 +350,121 @@ int cmd_exp (char *args) { //tmp command
   return 0;
 }
 
-// static int cmd_w(char* args) {
-//   // 如果没有开启watchpoint功能
-//   #ifndef CONFIG_WATCHPOINT
-//   printf("Watchpoint feature is disabled. Please enable it in the menuconfig. \n");
-//   return 0;
-//   #endif
+static int cmd_w(char* args) {
+  // 如果没有开启watchpoint功能
+  #ifndef Watchpoint_enable
+  printf("Watchpoint feature is disabled. Please enable it in the menuconfig. \n");
+  return 0;
+  #endif
 
-//   if(args == NULL) {
-//     printf("Need an expression! \n");
-//     return 0;
-//   }
-//   uint32_t result = 0;
-//   bool success = true;
-//   result = expr(args, &success);
-//   if(!success) {
-//     printf("Invalid expression! \n");
-//     return 0;
-//   }
-//   if(strlen(args) > MAXSIZE) {
-//     printf("expression too long! \n");
-//     return 0;
-//   }
-//   success = true;
-//   new_wp(args, result, &success, false);
-//   if(success) {
-//     printf("A new watchpoint has been established. \n");
-//   } else {
-//     printf("Failed to establish a new watchpoint. \n");
-//   }
-//   return 0;
-// }
+  if(args == NULL) {
+    printf("Need an expression! \n");
+    return 0;
+  }
+  uint32_t result = 0;
+  bool success = true;
+  result = expr(args, &success);
+  if(!success) {
+    printf("Invalid expression! \n");
+    return 0;
+  }
+  if(strlen(args) > MAXSIZE) {
+    printf("expression too long! \n");
+    return 0;
+  }
+  success = true;
+  new_wp(args, result, &success, false);
+  if(success) {
+    printf("A new watchpoint has been established. \n");
+  } else {
+    printf("Failed to establish a new watchpoint. \n");
+  }
+  return 0;
+}
 
-// static int cmd_d(char* args) {
-//   char *arg = strtok(NULL, " ");
-//   if(arg == NULL) {
-//     printf("Failed to get the NO. \n");
-//     return 0;
-//   }
+static int cmd_d(char* args) {
+  char *arg = strtok(NULL, " ");
+  if(arg == NULL) {
+    printf("Failed to get the NO. \n");
+    return 0;
+  }
 
-//   errno = 0;
-//   char *endptr;
-//   uint32_t NO = strtoul(arg, &endptr, 10);
-//   if(errno == ERANGE) {
-//     printf("No result out of range. \n");
-//     return 0;
-//   }
+  errno = 0;
+  char *endptr;
+  uint32_t NO = strtoul(arg, &endptr, 10);
+  if(errno == ERANGE) {
+    printf("No result out of range. \n");
+    return 0;
+  }
 
-//   if(arg == endptr) {
-//     printf("No digits were found. \n");
-//     return 0;
-//   }
+  if(arg == endptr) {
+    printf("No digits were found. \n");
+    return 0;
+  }
 
-//   if(NO >= NR_WP) {
-//     printf("NO out of range. \n");
-//     return 0;
-//   }
-//   bool success = true;
-//   free_wp(NO, &success);
-//   if(success) {
-//     printf("Successfully free watchpoint (NO:%d). \n", NO);
-//   } else {
-//     printf("Failed to free watchpoint. \n");
-//   }
-//   return 0;
-// }
+  if(NO >= NR_WP) {
+    printf("NO out of range. \n");
+    return 0;
+  }
+  bool success = true;
+  free_wp(NO, &success);
+  if(success) {
+    printf("Successfully free watchpoint (NO:%d). \n", NO);
+  } else {
+    printf("Failed to free watchpoint. \n");
+  }
+  return 0;
+}
 
-// static int cmd_b(char* args) {
-//   if(args == NULL) {
-//     printf("Need an address! \n");
-//     return 0;
-//   }
+static int cmd_b(char* args) {
+  if(args == NULL) {
+    printf("Need an address! \n");
+    return 0;
+  }
 
-//   errno = 0;
-//   char *endptr;
-//   word_t temp_addr = strtoul(args, &endptr, 16);
+  errno = 0;
+  char *endptr;
+  uint32_t temp_addr = strtoul(args, &endptr, 16);
 
-//   if(errno == ERANGE) {
-//     printf("Numerical result out of range. \n");
-//     return 0;
-//   }
+  if(errno == ERANGE) {
+    printf("Numerical result out of range. \n");
+    return 0;
+  }
 
-//   if(args == endptr) {
-//     printf("No digits were found. \n");
-//     return 0;
-//   }
+  if(args == endptr) {
+    printf("No digits were found. \n");
+    return 0;
+  }
 
-//   if (temp_addr > UINT32_MAX && !ISDEF(CONFIG_ISA64)) {
-//     printf("Address out of range for 32-bit architecture. \n");
-//     return 0;
-//   }
-//   uint32_t addr = (uint32_t)temp_addr;
+  if (temp_addr > UINT32_MAX) {
+    printf("Address out of range for 32-bit architecture. \n");
+    return 0;
+  }
+  uint32_t addr = (uint32_t)temp_addr;
 
-//   /* Check if address is within physical memory bounds */
-//   if (addr < MEM_BASE || addr > MEM_BASE + MEM_SIZE - 1) {
-//     printf("Address 0x%08x is out of bounds. Valid range: [0x%08x, 0x%08x]\n", 
-//            addr, MEM_BASE, MEM_BASE + MEM_SIZE - 1);
-//     return 0;
-//   }
-//   char str[MAXSIZE];
-//   snprintf(str, MAXSIZE, "$pc == 0x%08x", addr);
+  /* Check if address is within physical memory bounds */
+  if (addr < MEM_BASE || addr > MEM_BASE + MEM_SIZE - 1) {
+    printf("Address 0x%08x is out of bounds. Valid range: [0x%08x, 0x%08x]\n", 
+           addr, MEM_BASE, MEM_BASE + MEM_SIZE - 1);
+    return 0;
+  }
+  char str[MAXSIZE];
+  snprintf(str, MAXSIZE, "$pc == 0x%08x", addr);
 
-//   bool success = true;
-//   uint32_t result = expr(str, &success);
-//   if(!success) {
-//     printf("Invalid expression! \n");
-//     return 0;
-//   }
+  bool success = true;
+  uint32_t result = expr(str, &success);
+  if(!success) {
+    printf("Invalid expression! \n");
+    return 0;
+  }
 
-//   new_wp(str, result, &success, true);
+  new_wp(str, result, &success, true);
 
-//   if(success) {
-//     printf("A new breakpoint has been established at address 0x%08x. \n", addr);
-//   } else {
-//     printf("Failed to establish a new breakpoint. \n");
-//   }
+  if(success) {
+    printf("A new breakpoint has been established at address 0x%08x. \n", addr);
+  } else {
+    printf("Failed to establish a new breakpoint. \n");
+  }
   
-//   return 0;
-// }
+  return 0;
+}

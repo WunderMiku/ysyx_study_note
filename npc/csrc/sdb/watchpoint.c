@@ -13,12 +13,14 @@
  * See the Mulan PSL v2 for more details.
  ***************************************************************************************/
 
-#include "debug.h"
+#include "watchpoint.h"
+#include "npc.h"
 #include "sdb.h"
-#include "utils.h"
 #include <assert.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 
@@ -40,13 +42,13 @@ void init_wp_pool() {
 
 WP *new_wp(char *expression, uint32_t initial_value, bool *success, bool breakpoint) {
   if(expression == NULL) {
-    Log("null expression!");
+    printf("null expression!\n");
     *success = false;
     return NULL;
   }
 
   if (free_ == NULL) {
-    Log("NO free watchpoint!");
+    printf("NO free watchpoint!\n");
     assert(0);
   }
 
@@ -61,7 +63,7 @@ WP *new_wp(char *expression, uint32_t initial_value, bool *success, bool breakpo
   // 设置watchpoint的其他属性
 
   // 分配表达式的内存空间
-  new_wp->str = calloc(sizeof(char), MAXSIZE + 1);
+  new_wp->str = (char *)calloc(sizeof(char), MAXSIZE + 1);
   assert(new_wp->str);
 
   // 复制表达式
@@ -78,9 +80,9 @@ WP *new_wp(char *expression, uint32_t initial_value, bool *success, bool breakpo
   }
 
   if(breakpoint) {
-    Log("Successfully returned a free breakpoint");
+    printf("Successfully returned a free breakpoint\n");
   } else {
-    Log("Successfully returned a free watchpoint");
+    printf("Successfully returned a free watchpoint\n");
   }
   
   return new_wp;
@@ -96,7 +98,7 @@ void free_wp(int wp_no, bool *success) {
   }
 
   if (wp == NULL) {
-    Log("Try to free a null watchpoint!");
+    printf("Try to free a null watchpoint!\n");
     *success = false;
     return;
   }
@@ -119,7 +121,7 @@ void free_wp(int wp_no, bool *success) {
 
   // 如果都没找到
   if (!find) {
-    Log("Try to release a free or invalid watchpoint!");
+    printf("Try to release a free or invalid watchpoint!\n");
     *success = false;
     return;
   }
@@ -133,7 +135,7 @@ void free_wp(int wp_no, bool *success) {
   wp->next = free_;
   free_ = wp;
   *success = true;
-  Log("Successfully released watchpoint");
+  printf("Successfully released watchpoint\n");
 }
 
 void check_all_using_wp() {
@@ -144,22 +146,22 @@ void check_all_using_wp() {
       int NO = wp_ptr->NO;
 
       if(str == NULL) {
-        Log("Have a NULL using_watchpoint NO:%d", NO);
+        printf("Have a NULL using_watchpoint NO:%d\n", NO);
         continue;
       }
       bool success = true;
       uint32_t result = expr(str, &success);
       if(!success) {
         if(!breakpoint) 
-          Log("watchpoint(NO:%d): Expression parsing failed", NO);
+          printf("watchpoint(NO:%d): Expression parsing failed\n", NO);
         else
-          Log("breakpoint(NO:%d): Expression parsing failed", NO);
+          printf("breakpoint(NO:%d): Expression parsing failed\n", NO);
         
         continue;
       }
       if((result != old_result) && !breakpoint) { // 当值改变且是watchpoint时触发
-        if(nemu_state.state == NEMU_RUNNING) { // 因为程序退出与暂停均依靠这个判断，所以目前只能这样
-          nemu_state.state = NEMU_STOP;
+        if(npcState.state == NPC_RUNNING) { // 因为程序退出与暂停均依靠这个判断，所以目前只能这样
+          npcState.state = NPC_STOP;
           printf("watchpoint %d triggered (expression : %s). \n", NO, str);
           printf("Old value = 0x%08x\nNew value = 0x%08x\n", old_result, result);
           wp_ptr->old_result = result; // 更新值
@@ -168,8 +170,8 @@ void check_all_using_wp() {
         }
       }
       if(result && breakpoint) { // 当值为1且是breakpoint时触发
-        if(nemu_state.state == NEMU_RUNNING) { // 因为程序退出与暂停均依靠这个判断，所以目前只能这样
-          nemu_state.state = NEMU_STOP;
+        if(npcState.state == NPC_RUNNING) { // 因为程序退出与暂停均依靠这个判断，所以目前只能这样
+          npcState.state = NPC_STOP;
           printf("breakpoint %d triggered (expression : %s). \n", NO, str);
           wp_ptr->old_result = result; // 更新值
         } else {
@@ -186,7 +188,7 @@ void list_all_using_wp() {
       int NO = wp_ptr->NO;
       uint32_t old_result = wp_ptr->old_result;
       if(str == NULL) {
-        Log("Find a null str wp.");
+        printf("Find a null str wp.\n");
         continue;
       } 
       printf("%d  |  %d  |  %s \n", NO, old_result, str);
@@ -201,7 +203,7 @@ void delete_all_using_wp() {
       next_wp = wp_ptr->next;
       free_wp(wp_ptr->NO, &success);
       if(!success) {
-        Log("Failed to free watchpoint NO:%d", wp_ptr->NO);
+        printf("Failed to free watchpoint NO:%d", wp_ptr->NO);
       }
   }
 }

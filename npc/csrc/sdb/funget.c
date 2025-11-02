@@ -9,7 +9,6 @@
 #include <unistd.h>
 #include <string.h>
 #include "funget.h"
-#include "debug.h"
 #include "npc.h"
 
 

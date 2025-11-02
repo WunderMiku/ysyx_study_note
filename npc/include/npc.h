@@ -32,16 +32,13 @@
 #define BOLD_TEXT "\033[1m"
 #define ITALIC_TEXT "\033[3m"
 
-#define MEM_BASE 0x80000000
-#define MEM_SIZE 0x8000000
-
-#define SERIAL_PORT  0x10000000
-#define RTC_ADDR     0x10000060
+#include "config.h"
 
 typedef enum {
 	NPC_RUNNING = 0,
 	NPC_END,
 	NPC_QUIT,
+	NPC_STOP,
 	NPC_ABORT
 } NpcStateType;
 
