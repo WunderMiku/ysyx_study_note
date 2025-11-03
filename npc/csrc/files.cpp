@@ -1,4 +1,5 @@
 #include "npc.h"
+#include <cstdint>
 
 static void initMem() {
     M = (vluint32_t*)calloc(MEM_SIZE, sizeof(vluint32_t));
@@ -7,8 +8,9 @@ static void initMem() {
         exit(1);
     }
 }
-void loadFile(int argc, char** argv) {
+uint32_t loadFile(int argc, char** argv) {
 	initMem();
+	size_t readWords = 0;
 	if (argc < 3) {
 		printf(COLOR_RED "Missing file path!\n" COLOR_NONE);
 		for(int i = 0; i < argc; i++) {printf("%s", argv[i]);}
@@ -29,7 +31,7 @@ void loadFile(int argc, char** argv) {
 		}
 		
 		// 读取数据到M数组
-		size_t readWords = fread(M, sizeof(uint32_t), wordsToRead, file);
+		readWords = fread(M, sizeof(uint32_t), wordsToRead, file);
 		fclose(file);
 		
 		printf(COLOR_GREEN "成功加载 %ld 字节 (%zu 个32位字) 到内存\n" COLOR_NONE , readWords * sizeof(uint32_t), readWords);
@@ -37,4 +39,5 @@ void loadFile(int argc, char** argv) {
 		printf(COLOR_RED "无法打开文件: %s\n" COLOR_NONE , argv[2]);
 		exit(1);
 	}
+	return readWords;
 }

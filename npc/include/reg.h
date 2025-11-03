@@ -4,7 +4,7 @@
 #include <cassert>
 #include "npc.h"
 static inline int check_reg_idx(int idx) {
-	assert(idx >= 0 && idx < 32);
+	assert(idx >= 0 && idx < RISCV_GPR_NUM);
   return idx;
 }
 

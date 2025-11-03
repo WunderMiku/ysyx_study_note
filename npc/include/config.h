@@ -7,6 +7,8 @@
 #define SERIAL_PORT  0x10000000
 #define RTC_ADDR     0x10000060
 
+#define RISCV_GPR_NUM 32
+
 #define Ftrace_enable
 #define Watchpoint_enable
 

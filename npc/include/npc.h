@@ -44,10 +44,16 @@ typedef enum {
 
 typedef struct {
   NpcStateType state;
-	uint32_t inst;
+	uint32_t inst, halt_pc;
 	char instLog[256];
 } NpcState;
 
+typedef struct {
+  uint32_t gpr[RISCV_GPR_NUM];  /* 通用寄存器 */
+  uint32_t pc;                  /* 程序计数器 */
+} CpuState;
+
+extern CpuState cpu;
 extern NpcState npcState;
 extern std::unique_ptr<Vtop> dut;
 

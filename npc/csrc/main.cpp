@@ -3,6 +3,7 @@
 #include <cassert>
 #include <cstdint>
 #include <nvboard.h>
+#include "config.h"
 #include "funget.h"
 #include "ringbuf.h"
 #include "sdb/sdb.h"
@@ -12,7 +13,9 @@
 #include "npc.h"
 #include "files.h"
 #include "ram.h"
+#include "reg.h"
 #include "watchpoint.h"
+#include "difftest.h"
 #include "timer.h"
 #include "myVerilator.h"
 #include "disasm.h"
@@ -23,6 +26,8 @@
 vluint64_t simTime = 0;
 vluint32_t* M = nullptr;
 int instNum = 0;
+uint32_t fileSize;
+char NEMU_SO_PATH[64] = "./resource/riscv32-nemu-interpreter-so";
 
 static void singleCycle(Vtop*);
 static void reset(Vtop*);
@@ -30,15 +35,18 @@ static void execOnce();
 static int checkEbreak();
 static inline void clearScreen();
 static void setInstLog(uint32_t n);
+static void sim_init(int argc, char** argv);
+void update_cpuState();
 
 std::unique_ptr<VerilatedContext> contextp{new VerilatedContext};
 std::unique_ptr<Vtop> dut{new Vtop{contextp.get(), "TOP"}};
 
 VerilatedFstC* tfp = new VerilatedFstC;
-
 NpcState npcState;
+CpuState cpu;
+
 int main(int argc, char** argv) {
-	loadFile(argc, argv);
+	fileSize = loadFile(argc, argv);
 	
 	verilatorInit(tfp, contextp.get(), dut.get(), argc, argv);
 	reset(dut.get());
@@ -46,18 +54,7 @@ int main(int argc, char** argv) {
 	contextp->timeInc(1);
 	tfp->dump(contextp->time());
 	npcState.state = NPC_RUNNING;
-	clearScreen();
-	init_regex();
-	init_disasm();
-
-#ifdef Ftrace_enable
-	init_funget();
-	get_function(argv[argc - 1]); // 最后传入ELF
-#endif
-
-#ifdef Watchpoint_enable
-	init_wp_pool();
-#endif
+	sim_init(argc, argv);
 
 #ifdef BATMODE // 批处理模式
 	cpuExec(-1);
@@ -139,8 +136,10 @@ void cpuExec(uint32_t n) {
 		check_all_using_wp(); // 基于上一次指令执行结果进行检查
 #endif
 		setInstLog(n);
+		update_cpuState();
 		uint32_t before_pc = dut->out_pc;
 		execOnce();
+		difftest_step(before_pc - MEM_BASE);
 
 #ifdef Ftrace_enable
 		funget_detect(before_pc, dut->out_pc, npcState.inst); 
@@ -164,4 +163,28 @@ static void setInstLog(uint32_t n) {
 
 		if(n < MAX_SHOW_INST) { printf("%s\n", npcState.instLog);}
 		ringbuf_put(&inst_ringbuf, npcState.instLog);
+}
+
+static void sim_init(int argc, char** argv) {
+	clearScreen();
+	init_regex();
+	init_disasm();
+	update_cpuState();
+	init_difftest(NEMU_SO_PATH, fileSize, 1234);
+
+#ifdef Ftrace_enable
+	init_funget();
+	get_function(argv[argc - 1]); // 最后传入ELF
+#endif
+
+#ifdef Watchpoint_enable
+	init_wp_pool();
+#endif
+}
+
+void update_cpuState() {
+	cpu.pc = dut->out_pc;
+	for(int i = 0; i < RISCV_GPR_NUM; i++) {
+		cpu.gpr[i] = gpr(i);
+	}
 }
