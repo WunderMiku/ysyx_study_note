@@ -22,9 +22,9 @@ typedef struct {
 } diff_context_t;
 
 void init_difftest(char *ref_so_file, long img_size, int port);
-static void checkregs(CpuState *ref, uint32_t pc);
-bool isa_difftest_checkregs(CpuState *ref_r, uint32_t pc);
-void difftest_step(uint32_t pc);
+static void checkregs(CpuState *ref, uint32_t pc, uint32_t before_pc);
+bool isa_difftest_checkregs(CpuState *ref_r, uint32_t pc, uint32_t before_pc);
+void difftest_step(uint32_t pc, uint32_t before_pc);
 
 extern void (*ref_read_reg)();
 extern uint32_t (*ref_read_memory)(uint32_t addr, size_t len);

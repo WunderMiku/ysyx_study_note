@@ -6,6 +6,7 @@
 #include <dlfcn.h>
 #include <stdint.h>
 #include <stdio.h>
+#include "reg.h"
 
 bool isa_difftest_checkregs(CpuState *ref_r, uint32_t pc);
 
@@ -62,29 +63,29 @@ void init_difftest(char *ref_so_file, long img_size, int port) {
  * @param ref 参考实现的寄存器状态
  * @param pc  当前指令地址
  */
-static void checkregs(CpuState *ref, uint32_t pc) {
-  if (!isa_difftest_checkregs(ref, pc)) {
+static void checkregs(CpuState *ref, uint32_t pc, uint32_t before_pc) {
+  if (!isa_difftest_checkregs(ref, pc, before_pc)) {
     // 寄存器状态不一致，终止执行
     npcState.state = NPC_ABORT;
-    npcState.halt_pc = pc;
+    npcState.halt_pc = before_pc;
     isa_reg_display();  // 显示寄存器状态用于调试
   }
 }
 
-bool isa_difftest_checkregs(CpuState *ref_r, uint32_t pc) {
+bool isa_difftest_checkregs(CpuState *ref_r, uint32_t pc, uint32_t before_pc) {
   // 1. 检查32个通用寄存器
   for(int i = 0; i < 32; i ++) {
     if (ref_r->gpr[i] != gpr(i)) {
-      printf("Difftest failed at pc = 0x%08x\n", pc);
-      printf("reg %d: ref 0x%08x, dut 0x%08x\n",
-          i, ref_r->gpr[i], gpr(i));
+      printf("Difftest failed at pc = 0x%08x\n", before_pc);
+      printf("reg: " COLOR_RED "%s" COLOR_NONE ": ref_value: " COLOR_GREEN "0x%08x"  COLOR_NONE ", dut_value: " COLOR_RED "0x%08x" COLOR_NONE "\n",
+          regs[i], ref_r->gpr[i], gpr(i));
       return false;
     }
   }
 
   // 2. 检查程序计数器(PC)
   if(ref_r->pc != pc) {
-      printf("Difftest failed at pc = 0x%08x\n", pc);
+      printf("Difftest failed at pc = 0x%08x\n", before_pc);
       printf("pc: ref 0x%08x, dut 0x%08x\n",
           ref_r->pc, pc);
       return false;
@@ -100,7 +101,7 @@ bool isa_difftest_checkregs(CpuState *ref_r, uint32_t pc) {
  * @param pc  当前指令地址
  * @param npc 下一条指令地址
  */
-void difftest_step(uint32_t pc) {
+void difftest_step(uint32_t pc, uint32_t before_pc) {
   CpuState ref_r;
 
   ref_difftest_exec(1);
@@ -109,5 +110,5 @@ void difftest_step(uint32_t pc) {
   ref_difftest_regcpy(&ref_r, DIFFTEST_TO_DUT);
 
   // 比较寄存器状态
-  checkregs(&ref_r, pc);
+  checkregs(&ref_r, pc, before_pc);
 }

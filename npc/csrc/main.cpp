@@ -63,14 +63,17 @@ int main(int argc, char** argv) {
 		sdbMainLoop();
 		if(npcState.state != NPC_RUNNING) break;
 	}
-
-	if(npcState.state == NPC_ABORT) ringbuf_print(&inst_ringbuf);
 #endif
+	if(npcState.state == NPC_ABORT) ringbuf_print(&inst_ringbuf);
 
 	dut->final();
 	tfp->close();
 
-	return 0;
+	if(npcState.state == NPC_END) {
+		return 0;
+	} else {
+		return 1;
+	}
 }
 
 static void singleCycle(Vtop* dut) {
@@ -142,7 +145,7 @@ void cpuExec(uint32_t n) {
 		execOnce();
 
 #ifdef Difftest_enable
-		difftest_step(dut->out_pc);
+		difftest_step(dut->out_pc, before_pc);
 #endif
 
 #ifdef Ftrace_enable

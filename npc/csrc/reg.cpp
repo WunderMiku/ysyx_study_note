@@ -1,4 +1,5 @@
 #include "macro.h"
+#include "npc.h"
 #include "reg.h"
 #include <assert.h>
 // #include <stdio.h>
@@ -12,9 +13,11 @@ const char *regs[] = {
 };
 
 void isa_reg_display() {
+  printf(COLOR_DYELLOW "\n===== Registers =====\n" COLOR_NONE);
   for (int i = 0; i < ARRLEN(regs); i++) {
-    printf("%s: 0x%08x\n", regs[i], gpr(i));
+    printf(COLOR_YELLOW "%s" COLOR_NONE ": 0x%08x " COLOR_DYELLOW "   ||"  COLOR_NONE "\n", regs[i], gpr(i));
   }
+  printf("\n");
 }
 
 uint32_t isa_reg_str2val(const char *s, bool *success) {

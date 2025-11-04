@@ -7,6 +7,7 @@ static inline int check_reg_idx(int idx) {
 	assert(idx >= 0 && idx < RISCV_GPR_NUM);
   return idx;
 }
+extern const char *regs[];
 
 #define gpr(idx) (dut->out_reg[check_reg_idx(idx)])
 
