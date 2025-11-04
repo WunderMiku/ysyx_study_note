@@ -9,7 +9,8 @@
 
 #define RISCV_GPR_NUM 32
 
-#define Ftrace_enable
+// #define Ftrace_enable
 #define Watchpoint_enable
+// #define Difftest_enable
 
 #endif

@@ -18,6 +18,7 @@
 #include <cpu/cpu.h>
 #include <difftest-def.h>
 #include <memory/paddr.h>
+#include <stdint.h>
 
 void diff_memcpy(paddr_t dest, void* src, size_t n);
 __EXPORT void difftest_memcpy(paddr_t addr, void *buf, size_t n, bool direction) {
@@ -35,13 +36,15 @@ __EXPORT void difftest_regcpy(void *dut, bool direction) {
       // dut_context->gpr[i] = cpu.gpr[i];
       cpu.gpr[i] = dut_context->gpr[i];
     }
-    dut_context->pc = cpu.pc;
+    cpu.pc = dut_context->pc;
+    // dut_context->pc = cpu.pc;
   } else {
     for(int i = 0; i < RISCV_GPR_NUM; i++) {
       // cpu.gpr[i] = dut_context->gpr[i];
       dut_context->gpr[i] = cpu.gpr[i];
     }
-    cpu.pc = dut_context->pc;
+    // cpu.pc = dut_context->pc;
+    dut_context->pc = cpu.pc;
   }
 }
 
@@ -65,4 +68,12 @@ void diff_memcpy(paddr_t dest, void* src, size_t n) {
 	for(int i = 0; i < n; i++) {
 		paddr_write(dest + i, 1, ((uint8_t*)src)[i]);
 	}
+}
+
+__EXPORT uint32_t read_memory(uint32_t addr, int len) {
+  return paddr_read(addr, len);
+}
+
+__EXPORT void read_reg() {
+  isa_reg_display();
 }

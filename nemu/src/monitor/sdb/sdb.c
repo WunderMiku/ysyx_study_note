@@ -253,7 +253,7 @@ int cmd_exp (char *args) { //tmp command
     uint32_t consult;
 
     consult = expr(expression_cal, &success);
-    if(success) printf("consult: %u\n", consult);
+    if(success) printf("consult: 0x%08x\n", consult);
     
     else printf("expr ERROR! \n");
     

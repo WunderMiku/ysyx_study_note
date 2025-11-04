@@ -27,7 +27,7 @@
  * This is useful when you use the `si' command.
  * You can modify this value as you want.
  */
-#define MAX_INST_TO_PRINT 10
+#define MAX_INST_TO_PRINT 10000
 
 CPU_state cpu = {};
 uint64_t g_nr_guest_inst = 0;
@@ -62,7 +62,9 @@ static void exec_once(Decode *s, vaddr_t pc) {
   s->pc = pc;
   s->snpc = pc;
   isa_exec_once(s);
-  cpu.pc = s->dnpc;   // 根据执行结果更新PC
+  if(nemu_state.state != NEMU_END){ // 结束后不需要步进
+    cpu.pc = s->dnpc;   // 根据执行结果更新PC
+  }
 #ifdef CONFIG_ITRACE
   char *p = s->logbuf;
   // 将 pc 写入 logbuf
@@ -139,15 +141,19 @@ void cpu_exec(uint64_t n) {
     case NEMU_RUNNING: nemu_state.state = NEMU_STOP; break;
 
     case NEMU_END: case NEMU_ABORT:
+#ifndef CONFIG_TARGET_SHARE
       Log("nemu: %s at pc = " FMT_WORD,
           (nemu_state.state == NEMU_ABORT ? ANSI_FMT("ABORT", ANSI_FG_RED) :
            (nemu_state.halt_ret == 0 ? ANSI_FMT("HIT GOOD TRAP", ANSI_FG_GREEN) :
             ANSI_FMT("HIT BAD TRAP", ANSI_FG_RED))),
           nemu_state.halt_pc);
+#endif
       // fall through
     case NEMU_QUIT: 
       delete_all_using_wp(); // 退出时删除所有watchpoint，防止内存泄漏（但实际似乎没什么用处）
+#ifndef CONFIG_TARGET_SHARE
       statistic();
+#endif
   }
   if(nemu_state.state == NEMU_ABORT || (nemu_state.state == NEMU_END && nemu_state.halt_ret != 0)) {
     IFDEF(CONFIG_ITRACE,ringbuf_print(&inst_ringbuf); )

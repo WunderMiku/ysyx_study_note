@@ -26,4 +26,7 @@ static void checkregs(CpuState *ref, uint32_t pc);
 bool isa_difftest_checkregs(CpuState *ref_r, uint32_t pc);
 void difftest_step(uint32_t pc);
 
+extern void (*ref_read_reg)();
+extern uint32_t (*ref_read_memory)(uint32_t addr, size_t len);
+
 #endif

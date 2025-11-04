@@ -27,7 +27,7 @@ vluint64_t simTime = 0;
 vluint32_t* M = nullptr;
 int instNum = 0;
 uint32_t fileSize;
-char NEMU_SO_PATH[64] = "./resource/riscv32-nemu-interpreter-so";
+char NEMU_SO_PATH[128] = "/home/misuzu/ysyx-workbench/nemu/build/riscv32-nemu-interpreter-so";
 
 static void singleCycle(Vtop*);
 static void reset(Vtop*);
@@ -126,6 +126,7 @@ static void execOnce() {
 }
 
 void cpuExec(uint32_t n) {
+	// printf("Running... for %d times\n", n);
 	if(npcState.state == NPC_STOP) {npcState.state = NPC_RUNNING;} // 恢复执行
 	if(npcState.state != NPC_RUNNING) {
 		printf("NPC is not running, press 'q' to quit\n");
@@ -139,7 +140,10 @@ void cpuExec(uint32_t n) {
 		update_cpuState();
 		uint32_t before_pc = dut->out_pc;
 		execOnce();
-		difftest_step(before_pc - MEM_BASE);
+
+#ifdef Difftest_enable
+		difftest_step(dut->out_pc);
+#endif
 
 #ifdef Ftrace_enable
 		funget_detect(before_pc, dut->out_pc, npcState.inst); 
@@ -170,7 +174,10 @@ static void sim_init(int argc, char** argv) {
 	init_regex();
 	init_disasm();
 	update_cpuState();
+
+#ifdef Difftest_enable
 	init_difftest(NEMU_SO_PATH, fileSize, 1234);
+#endif
 
 #ifdef Ftrace_enable
 	init_funget();

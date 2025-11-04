@@ -13,6 +13,9 @@ void (*ref_difftest_memcpy)(uint32_t addr, void *buf, size_t n, bool direction) 
 void (*ref_difftest_regcpy)(void *dut, bool direction) = NULL;
 void (*ref_difftest_exec)(uint64_t n) = NULL;
 void (*ref_difftest_raise_intr)(uint64_t NO) = NULL;
+void (*ref_read_reg)() = NULL;
+uint32_t (*ref_read_memory)(uint32_t addr, size_t len) = NULL;
+
 void init_difftest(char *ref_so_file, long img_size, int port) {
 	assert(ref_so_file != NULL);
 	// 1. 动态加载参考实现库
@@ -32,6 +35,12 @@ void init_difftest(char *ref_so_file, long img_size, int port) {
 
   ref_difftest_raise_intr = (void(*)(uint64_t NO))dlsym(handle, "difftest_raise_intr");
   assert(ref_difftest_raise_intr);
+
+  ref_read_memory = (uint32_t(*)(uint32_t addr, size_t len))dlsym(handle, "read_memory");
+  assert(ref_read_memory);
+
+  ref_read_reg = (void (*)())dlsym(handle, "read_reg");
+  assert(ref_read_reg);
 
   void (*ref_difftest_init)(int) = (void(*)(int))dlsym(handle, "difftest_init");
   assert(ref_difftest_init);
@@ -96,9 +105,9 @@ void difftest_step(uint32_t pc) {
 
   ref_difftest_exec(1);
 
-  // 3.2 获取参考实现的寄存器状态
+  // 获取参考实现的寄存器状态
   ref_difftest_regcpy(&ref_r, DIFFTEST_TO_DUT);
 
-  // 3.3 比较寄存器状态
-  checkregs(&ref_r, pc); // 注意：这里使用npc而不是pc，因为指令执行后PC已经更新
+  // 比较寄存器状态
+  checkregs(&ref_r, pc);
 }

@@ -39,5 +39,5 @@ uint32_t loadFile(int argc, char** argv) {
 		printf(COLOR_RED "无法打开文件: %s\n" COLOR_NONE , argv[2]);
 		exit(1);
 	}
-	return readWords;
+	return (readWords * sizeof(uint32_t));
 }

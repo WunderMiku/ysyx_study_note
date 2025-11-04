@@ -1,6 +1,7 @@
 #include <readline/history.h>
 #include <readline/readline.h>
 #include <stdlib.h>
+#include "difftest.h"
 #include "npc.h"
 #include "reg.h"
 #include "ram.h"
@@ -53,6 +54,9 @@ static int cmd_d(char* args);
 
 static int cmd_b(char* args);
 
+static int cmd_dx(char* args);
+
+static int cmd_info_diff(char *args);
 
 static struct {
   const char *name;
@@ -64,11 +68,13 @@ static struct {
   { "q", "Exit NEMU", cmd_q },
   { "si", "Execute N instructions step by step, N default 1", cmd_si},
   { "info", "Print information, r: register status, w: watchpoint information", cmd_info},
+  {"diffinfo", "Print information about ref(NEMU)", cmd_info_diff},
   {"x", "Scan memory", cmd_x},
   {"exp", "tmp, just test exper", cmd_exp},
   {"w", "add watchpoint", cmd_w},
   {"d", "delete watchpoint", cmd_d},
-  {"b", "set breakpoint", cmd_b}
+  {"b", "set breakpoint", cmd_b},
+  {"dx", "scan ref(NEMU) memory", cmd_dx}
 
   /* TODO: Add more commands */
 
@@ -157,16 +163,24 @@ static int cmd_si(char *args) {
   return 0;
 }
 
-static int cmd_info(char *args) {
+static int get_info(char *args, bool diffTest) {
   char *arg = strtok(NULL, " ");
   if (arg == NULL) {
     printf("USAGE : info r /  info w \n");
   } else {
     if (strcmp(arg, "r") == 0) {
-      isa_reg_display();
+      if(diffTest) {
+        ref_read_reg();
+      } else {
+        isa_reg_display();
+      }
     } else 
     if (strcmp(arg, "w") == 0) {
-      list_all_using_wp();
+      if(diffTest) {
+        printf(COLOR_RED "Not support\n");
+      } else {
+        list_all_using_wp();
+      }
     } else {
       printf("USAGE : info r /  info w \n");
     }
@@ -175,7 +189,15 @@ static int cmd_info(char *args) {
   return 0;
 }
 
-static int cmd_x(char *args) {
+static int cmd_info(char *args) {
+  return get_info(args, false);
+}
+
+static int cmd_info_diff(char *args) {
+  return get_info(args, true);
+}
+
+static int get_x(char *args, bool diffTest) {
   char *arg = strtok(NULL, " ");
   if(arg == NULL) {
     printf("USAGE : x N EXPR \n");
@@ -237,10 +259,21 @@ static int cmd_x(char *args) {
   }
 
   /* addr is valid */
-
-  printf("0x%08x at 0x%08x\n", paddr_read(addr, N), addr);
+  if(diffTest) {
+    printf("0x%08x (ref_addr :0x%08x)\n", ref_read_memory(addr, N), addr);
+  } else {
+    printf("0x%08x (addr :0x%08x)\n", paddr_read(addr, N), addr);
+  }
   
   return 0;
+}
+
+static int cmd_x(char *args) {
+  return get_x(args, false);
+}
+
+static int cmd_dx(char *args) {
+  return get_x(args, true);
 }
 
 int cmd_exp (char *args) { //tmp command
