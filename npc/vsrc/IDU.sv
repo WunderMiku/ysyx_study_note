@@ -3,6 +3,8 @@ module IDU (
 	output [4:0] rs1_addr,
 	output [4:0] rs2_addr,
 	output [4:0] rd_addr,
+
+	// 指令使能
 	output add_en,
 	output addi_en,
 	output lui_en,
@@ -12,6 +14,18 @@ module IDU (
 	output sb_en,
 	output jalr_en,
 	output ebreak_en,
+	output auipc_en,
+	output jal_en,
+	output sub_en,
+	output sltiu_en,
+	output beq_en,
+	output bne_en,
+	output sltu_en,
+	output xor_en,
+	output or_en,
+	output sh_en,
+
+	// 立即数
 	output [11:0] I_imm,
 	output [11:0] S_imm,
 	output [12:0] B_imm,
@@ -42,5 +56,17 @@ assign sw_en   =  (opcode == 7'b0100011) && (funct3 == 3'b010);
 assign sb_en   =  (opcode == 7'b0100011) && (funct3 == 3'b000);
 assign jalr_en =  (opcode == 7'b1100111) && (funct3 == 3'b000);
 assign ebreak_en = (inst == 32'h00100073);
+
+assign auipc_en =  (opcode == 7'b0010111);
+assign jal_en   =  (opcode == 7'b1101111);
+assign sub_en   =  (opcode == 7'b0110011) && (funct7 == 7'b0100000);
+assign sltiu_en =  (opcode == 7'b0010011) && (funct3 == 3'b011);
+assign beq_en   =  (opcode == 7'b1100011) && (funct3 == 3'b000);
+assign bne_en   =  (opcode == 7'b1100011) && (funct3 == 3'b001);
+assign sltu_en  =  (opcode == 7'b0110011) && (funct3 == 3'b011);
+assign xor_en   =  (opcode == 7'b0110011) && (funct3 == 3'b100);
+assign or_en    =  (opcode == 7'b0110011) && (funct3 == 3'b110);
+
+assign sh_en    =  (opcode == 7'b0100011) && (funct3 == 3'b001);
 
 endmodule

@@ -8,12 +8,20 @@
 #define COLOR_RED    "\033[1;31m"
 #define COLOR_GREEN  "\033[1;32m"
 #define COLOR_YELLOW "\033[1;33m"
-#define COLOR_BLUE   "\033[44m"
+#define COLOR_BLUE   "\033[34m"
 #define COLOR_BLACK   "\33[1;30m"
 #define COLOR_MAGENTA "\33[1;35m"
 #define COLOR_CYAN    "\33[1;36m"
 #define COLOR_WHITE   "\33[1;37m"
 #define COLOR_NONE   "\033[0m"
+
+#define COLOR_SELECT(n) ((n) == 0 ? COLOR_RED : \
+                         (n) == 1 ? COLOR_GREEN : \
+                         (n) == 2 ? COLOR_YELLOW : \
+                         (n) == 3 ? COLOR_BLUE : \
+                         (n) == 4 ? COLOR_BLACK : \
+                         (n) == 5 ? COLOR_MAGENTA : \
+                         (n) == 6 ? COLOR_CYAN : COLOR_WHITE)
 
 #define COLOR_BG_BLACK   "\33[1;40m"
 #define COLOR_BG_RED     "\33[1;41m"

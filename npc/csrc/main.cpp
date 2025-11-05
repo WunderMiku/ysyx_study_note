@@ -19,6 +19,7 @@
 #include "timer.h"
 #include "myVerilator.h"
 #include "disasm.h"
+#include <random>
 
 #define MAX_SHOW_INST 50
 #define MAX_SIM_TIME 100
@@ -33,10 +34,12 @@ static void singleCycle(Vtop*);
 static void reset(Vtop*);
 static void execOnce();
 static int checkEbreak();
+static bool checkInstVaild();
 static inline void clearScreen();
 static void setInstLog(uint32_t n);
 static void sim_init(int argc, char** argv);
 void update_cpuState();
+int get_random(int n);
 
 std::unique_ptr<VerilatedContext> contextp{new VerilatedContext};
 std::unique_ptr<Vtop> dut{new Vtop{contextp.get(), "TOP"}};
@@ -64,12 +67,11 @@ int main(int argc, char** argv) {
 		if(npcState.state != NPC_RUNNING) break;
 	}
 #endif
-	if(npcState.state == NPC_ABORT) ringbuf_print(&inst_ringbuf);
 
 	dut->final();
 	tfp->close();
 
-	if(npcState.state == NPC_END) {
+	if(npcState.state == NPC_END || npcState.state == NPC_QUIT) {
 		return 0;
 	} else {
 		return 1;
@@ -96,8 +98,10 @@ static int checkEbreak() {
 	dut->ebreak_get(&flag); 
 	if(flag) {
 		if(!dut->A0) {
+      int n = get_random(7);
+			// printf("n: " COLOR_MIKU "%d\n" COLOR_NONE, n);
 			printf("Get ebreak: " COLOR_GREEN "HIT GOOD TRAP" COLOR_NONE\
-				 ", at pc: 0x%08x\nTotal inst(s): " COLOR_MIKU "%d" COLOR_NONE "\nCiallo~(∠•ω＜)⌒☆\n", dut->out_pc, instNum);
+				 ", at pc: 0x%08x\nTotal inst(s): " COLOR_MIKU "%d" COLOR_NONE "%s" "\nCiallo~(∠•ω＜)⌒☆\n" COLOR_NONE, dut->out_pc, instNum, COLOR_SELECT(n));
 			npcState.state = NPC_END;
 		} else {
 			printf("Get ebreak: " COLOR_RED "HIT BAD TRAP" COLOR_NONE\
@@ -108,6 +112,15 @@ static int checkEbreak() {
 	} else {
 		return 0;
 	}
+}
+
+static bool checkInstVaild() {
+	if(!(dut->inst_valid_flag)) {
+		npcState.state = NPC_ABORT;
+		printf(COLOR_RED "Invalid instruction:\t%s\n" COLOR_NONE, npcState.instLog);
+		return false;
+	}
+	return true;
 }
 static void execOnce() {
 	// Ram 读写端口数据处理
@@ -120,7 +133,9 @@ static void execOnce() {
 	}
 
 	instNum++;
-	if(checkEbreak()) return;
+	if(checkEbreak()) return; // 检测 ebreak 指令
+	if(!checkInstVaild()) return; // 检测 非法/未实现 指令
+
 	// ================ 控制信号更新完成，步进以执行该周期指令 ===============
 	// 电路步进
 	singleCycle(dut.get());
@@ -151,7 +166,8 @@ void cpuExec(uint32_t n) {
 #ifdef Ftrace_enable
 		funget_detect(before_pc, dut->out_pc, npcState.inst); 
 #endif
-
+		// 执行后异常处理
+		if(npcState.state == NPC_ABORT) ringbuf_print(&inst_ringbuf);
 		if(npcState.state != NPC_RUNNING) break;
 	}
 	return;
@@ -170,6 +186,15 @@ static void setInstLog(uint32_t n) {
 
 		if(n < MAX_SHOW_INST) { printf("%s\n", npcState.instLog);}
 		ringbuf_put(&inst_ringbuf, npcState.instLog);
+}
+
+// 返回0～n之间的一个整数
+int get_random(int n) {
+	static std::random_device rd;
+	static std::mt19937 gen(rd());
+	static std::uniform_int_distribution<> dis(0, n); 
+
+	return dis(gen);
 }
 
 static void sim_init(int argc, char** argv) {

@@ -17,7 +17,7 @@ module RV32_regs (
 	// A0寄存器输出
 	output [31:0] A0_val,
 
-	// 所有寄存器输出 (sdb调试使用)
+	// 所有寄存器输出 (调试接口)
 	output [31:0] reg_val [31:0]
 );
 

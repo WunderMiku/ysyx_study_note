@@ -13,14 +13,18 @@ module top (
   output [3:0]  ramWriteMask,
   output ramWe,
 
-  // Sdb 接口
+  // 调试接口
   output [31:0] out_pc,
-  output [31:0] out_reg [31:0]
+  output [31:0] out_reg [31:0],
+  output inst_valid_flag
 );
+  // =========== 调试接口实现 ===========
+  assign inst_valid_flag = |{add_en, addi_en, lui_en, lw_en, lbu_en, sw_en, sb_en, jalr_en, ebreak_en, auipc_en, jal_en,
+                             sub_en | sltiu_en | beq_en | bne_en | sltu_en | xor_en | or_en | sh_en};
+
   // =========== IFU实现 ===========
   import "DPI-C" function int pmem_read(input int raddr, input int len);
-  import "DPI-C" function void pmem_write(
-    input int waddr, input int wdata, input byte wmask);
+  import "DPI-C" function void pmem_write(input int waddr, input int wdata, input byte wmask);
 
   reg [31:0] inst;
   always @(*) begin
@@ -32,6 +36,7 @@ module top (
   end
 
   assign out_pc = pc;
+  
   // =========== PC 寄存器实现 ===========
   reg  [31:0] pc;
   wire [31:0] next_pc;
@@ -53,7 +58,8 @@ module top (
   wire [4:0] rs1_addr, rs2_addr, rd_addr;
   wire [31:0] rs1_val, rs2_val, rd_val;
   wire [31:0] imm;
-  wire add_en, addi_en, lui_en, lw_en, lbu_en, sw_en, sb_en, jalr_en, ebreak_en;
+  wire add_en, addi_en, lui_en, lw_en, lbu_en, sw_en, sb_en, jalr_en, ebreak_en, auipc_en, jal_en;
+  wire sub_en, sltiu_en, beq_en, bne_en, sltu_en, xor_en, or_en, sh_en;
   wire [11:0] I_imm, S_imm;
   wire [12:0] B_imm;
   wire [31:0] U_imm;
@@ -63,15 +69,12 @@ module top (
     .rs1_addr(rs1_addr),
     .rs2_addr(rs2_addr),
     .rd_addr(rd_addr),
-    .add_en(add_en),
-    .addi_en(addi_en),
-    .lui_en(lui_en),
-    .lw_en(lw_en),
-    .lbu_en(lbu_en),
-    .sw_en(sw_en),
-    .sb_en(sb_en),
-    .jalr_en(jalr_en),
-    .ebreak_en(ebreak_en),
+
+    .add_en(add_en), .addi_en(addi_en), .lui_en(lui_en), .lw_en(lw_en), .lbu_en(lbu_en),
+    .sw_en(sw_en), .sb_en(sb_en), .jalr_en(jalr_en), .ebreak_en(ebreak_en), .auipc_en(auipc_en),
+    .jal_en(jal_en), .sub_en(sub_en), .sltiu_en(sltiu_en), .beq_en(beq_en), .bne_en(bne_en),
+    .sltu_en(sltu_en), .xor_en(xor_en), .or_en(or_en), .sh_en(sh_en), 
+
     .I_imm(I_imm),
     .S_imm(S_imm),
     .B_imm(B_imm),
@@ -116,9 +119,12 @@ module top (
 
 
   // =========== EXU 例化 ===========
-  assign imm =  (addi_en | lw_en | lbu_en | jalr_en) ? {{20{I_imm[11]}}, I_imm} :
+  assign imm =  (addi_en | lw_en | lbu_en | jalr_en | sltiu_en) ? {{20{I_imm[11]}}, I_imm} :
                 (lui_en) ? U_imm :
-                (sw_en | sb_en) ? {{20{S_imm[11]}}, S_imm} :
+                (sw_en | sb_en | sh_en) ? {{20{S_imm[11]}}, S_imm} :
+                (auipc_en) ? U_imm :
+                (jal_en) ? {{11{J_imm[20]}}, J_imm} :
+                (beq_en | bne_en) ? {{19{B_imm[12]}}, B_imm} :
                 32'b0;
 
   wire [31:0] ex_next_pc;
@@ -134,15 +140,10 @@ module top (
   assign ex_rs2_val = reg_addr2_val;
 
   EXU uEXU (
-    .add_en(add_en),
-    .addi_en(addi_en),
-    .lui_en(lui_en),
-    .lw_en(lw_en),
-    .lbu_en(lbu_en),
-    .sw_en(sw_en),
-    .sb_en(sb_en),
-    .jalr_en(jalr_en),
-    .ebreak_en(ebreak_en),
+    .add_en(add_en), .addi_en(addi_en), .lui_en(lui_en), .lw_en(lw_en), .lbu_en(lbu_en),
+    .sw_en(sw_en), .sb_en(sb_en), .jalr_en(jalr_en), .ebreak_en(ebreak_en), .auipc_en(auipc_en),
+    .jal_en(jal_en), .sub_en(sub_en), .sltiu_en(sltiu_en), .beq_en(beq_en), .bne_en(bne_en),
+    .sltu_en(sltu_en), .xor_en(xor_en), .or_en(or_en), .sh_en(sh_en),
 
     .rs1_val(ex_rs1_val),
     .rs2_val(ex_rs2_val),

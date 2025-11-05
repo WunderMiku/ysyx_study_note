@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <string.h>
 
-
 RingBuffer inst_ringbuf;
 
 static bool ringbuf_full(RingBuffer *rb);
@@ -37,18 +36,14 @@ void ringbuf_put(RingBuffer *rb, char *data) {
 // 从环形缓冲区输出全部数据
 void ringbuf_print(RingBuffer *rb) {
 	assert(rb != NULL);
-	printf("===== RingBuffer: %d inst(s) =====\n", rb->count);
+	printf("\n========== RingBuffer: %d inst(s) ==========\n", rb->count);
 	for(int i = 0; i < rb->count; i++) {
 		if(i != rb->count - 1) {
-			printf("%s\n", rb->buf[(rb->tail + i) % RINGBUF_SIZE]);
+			printf("    %s\n", rb->buf[(rb->tail + i) % RINGBUF_SIZE]);
 		} else {
-			printf(ITALIC_TEXT "%s\n" COLOR_NONE, rb->buf[(rb->tail + i) % RINGBUF_SIZE]);
+			printf( COLOR_RED "-->" COLOR_NONE " %s\n\n", rb->buf[(rb->tail + i) % RINGBUF_SIZE]);
 		}
 	}
-	printf("              ^\n");
-	printf("              |\n");
-	printf(" Last_inst ---+\n");
-	printf("\n");
 }
 
 // 检查环形缓冲区是否已满
