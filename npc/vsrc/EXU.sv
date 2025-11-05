@@ -19,6 +19,10 @@ module EXU (
 	input xor_en,
 	input or_en,
 	input sh_en,
+	input srai_en,
+	input andi_en,
+	input sll_en,
+	input and_en,
 
 	// 数据输入
 	input  [31:0] rs1_val,
@@ -52,7 +56,7 @@ module EXU (
 	// 寄存器写使能
 	assign reg_we = (add_en | addi_en | jalr_en | lui_en | lbu_en | lw_en |
 									 auipc_en | jal_en | sub_en | sltiu_en | sltu_en | xor_en |
-									 or_en ) && (reg_addr != 5'b0);
+									 or_en | srai_en | andi_en | sll_en | and_en) && (reg_addr != 5'b0);
 
 	// 寄存器写入数据
 	assign reg_data = ({32{add_en}} & (rs1_val + rs2_val)) |
@@ -67,12 +71,16 @@ module EXU (
 										({32{sltiu_en}} & {31'b0, (rs1_val < imm)}) |
 										({32{sltu_en}} & {31'b0, (rs1_val < rs2_val)}) |
 										({32{xor_en}} & (rs1_val ^ rs2_val)) |
-										({32{or_en}} & (rs1_val | rs2_val));
+										({32{or_en}} & (rs1_val | rs2_val)) |
+										({32{srai_en}} & (rs1_val >>> imm)) |
+										({32{andi_en}} & (rs1_val & imm)) |
+										({32{sll_en}} & (rs1_val << rs2_val[4:0])) |
+										({32{and_en}} & (rs1_val & rs2_val));
 
 	// 寄存器写入地址
 	assign reg_addr = ({5{add_en | addi_en | jalr_en | lui_en | lbu_en | lw_en |
 												auipc_en | jal_en | sub_en | sltiu_en | sltu_en | xor_en |
-												or_en}} & rd_addr) | 5'b0;
+												or_en | srai_en | andi_en | sll_en | and_en}} & rd_addr) | 5'b0;
 
 
 	// =========== PC信号控制 =========== 

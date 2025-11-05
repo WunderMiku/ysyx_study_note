@@ -20,7 +20,8 @@ module top (
 );
   // =========== 调试接口实现 ===========
   assign inst_valid_flag = |{add_en, addi_en, lui_en, lw_en, lbu_en, sw_en, sb_en, jalr_en, ebreak_en, auipc_en, jal_en,
-                             sub_en | sltiu_en | beq_en | bne_en | sltu_en | xor_en | or_en | sh_en};
+                             sub_en, sltiu_en, beq_en, bne_en, sltu_en, xor_en, or_en, sh_en, srai_en, andi_en, sll_en, 
+                             and_en};
 
   // =========== IFU实现 ===========
   import "DPI-C" function int pmem_read(input int raddr, input int len);
@@ -59,7 +60,8 @@ module top (
   wire [31:0] rs1_val, rs2_val, rd_val;
   wire [31:0] imm;
   wire add_en, addi_en, lui_en, lw_en, lbu_en, sw_en, sb_en, jalr_en, ebreak_en, auipc_en, jal_en;
-  wire sub_en, sltiu_en, beq_en, bne_en, sltu_en, xor_en, or_en, sh_en;
+  wire sub_en, sltiu_en, beq_en, bne_en, sltu_en, xor_en, or_en, sh_en, srai_en, andi_en, sll_en;
+  wire and_en;
   wire [11:0] I_imm, S_imm;
   wire [12:0] B_imm;
   wire [31:0] U_imm;
@@ -73,7 +75,8 @@ module top (
     .add_en(add_en), .addi_en(addi_en), .lui_en(lui_en), .lw_en(lw_en), .lbu_en(lbu_en),
     .sw_en(sw_en), .sb_en(sb_en), .jalr_en(jalr_en), .ebreak_en(ebreak_en), .auipc_en(auipc_en),
     .jal_en(jal_en), .sub_en(sub_en), .sltiu_en(sltiu_en), .beq_en(beq_en), .bne_en(bne_en),
-    .sltu_en(sltu_en), .xor_en(xor_en), .or_en(or_en), .sh_en(sh_en), 
+    .sltu_en(sltu_en), .xor_en(xor_en), .or_en(or_en), .sh_en(sh_en), .srai_en(srai_en),
+    .andi_en(andi_en), .sll_en(sll_en), .and_en(and_en),
 
     .I_imm(I_imm),
     .S_imm(S_imm),
@@ -119,12 +122,13 @@ module top (
 
 
   // =========== EXU 例化 ===========
-  assign imm =  (addi_en | lw_en | lbu_en | jalr_en | sltiu_en) ? {{20{I_imm[11]}}, I_imm} :
+  assign imm =  (addi_en | lw_en | lbu_en | jalr_en | sltiu_en | andi_en) ? {{20{I_imm[11]}}, I_imm} :
                 (lui_en) ? U_imm :
                 (sw_en | sb_en | sh_en) ? {{20{S_imm[11]}}, S_imm} :
                 (auipc_en) ? U_imm :
                 (jal_en) ? {{11{J_imm[20]}}, J_imm} :
                 (beq_en | bne_en) ? {{19{B_imm[12]}}, B_imm} :
+                (srai_en) ? {27'b0, I_imm[4:0]} :
                 32'b0;
 
   wire [31:0] ex_next_pc;
@@ -143,7 +147,8 @@ module top (
     .add_en(add_en), .addi_en(addi_en), .lui_en(lui_en), .lw_en(lw_en), .lbu_en(lbu_en),
     .sw_en(sw_en), .sb_en(sb_en), .jalr_en(jalr_en), .ebreak_en(ebreak_en), .auipc_en(auipc_en),
     .jal_en(jal_en), .sub_en(sub_en), .sltiu_en(sltiu_en), .beq_en(beq_en), .bne_en(bne_en),
-    .sltu_en(sltu_en), .xor_en(xor_en), .or_en(or_en), .sh_en(sh_en),
+    .sltu_en(sltu_en), .xor_en(xor_en), .or_en(or_en), .sh_en(sh_en), .srai_en(srai_en),
+    .andi_en(andi_en), .sll_en(sll_en), .and_en(and_en),
 
     .rs1_val(ex_rs1_val),
     .rs2_val(ex_rs2_val),

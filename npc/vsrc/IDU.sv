@@ -24,6 +24,10 @@ module IDU (
 	output xor_en,
 	output or_en,
 	output sh_en,
+	output srai_en,
+	output andi_en,
+	output sll_en,
+	output and_en,
 
 	// 立即数
 	output [11:0] I_imm,
@@ -68,5 +72,9 @@ assign xor_en   =  (opcode == 7'b0110011) && (funct3 == 3'b100);
 assign or_en    =  (opcode == 7'b0110011) && (funct3 == 3'b110);
 
 assign sh_en    =  (opcode == 7'b0100011) && (funct3 == 3'b001);
+assign srai_en  =  (opcode == 7'b0010011) && (funct3 == 3'b101) && (funct7 == 7'b0100000);
+assign andi_en  =  (opcode == 7'b0010011) && (funct3 == 3'b111);
+assign sll_en   =  (opcode == 7'b0110011) && (funct3 == 3'b001);
+assign and_en   =  (opcode == 7'b0110011) && (funct3 == 3'b111);
 
 endmodule
