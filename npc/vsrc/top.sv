@@ -21,7 +21,8 @@ module top (
   // =========== 调试接口实现 ===========
   assign inst_valid_flag = |{add_en, addi_en, lui_en, lw_en, lbu_en, sw_en, sb_en, jalr_en, ebreak_en, auipc_en, jal_en,
                              sub_en, sltiu_en, beq_en, bne_en, sltu_en, xor_en, or_en, sh_en, srai_en, andi_en, sll_en, 
-                             and_en};
+                             and_en, xori_en, bge_en, blt_en, srli_en, bgeu_en, slli_en, bltu_en, sra_en, srl_en, lh_en,
+                             lhu_en, lb_en, ori_en, slti_en, slt_en};
 
   // =========== IFU实现 ===========
   import "DPI-C" function int pmem_read(input int raddr, input int len);
@@ -50,7 +51,6 @@ module top (
       pc <= 32'h80000000;
     end else begin
       pc <= next_pc;
-      // $display("pc: 0x%08x, inst: 0x%08x", pc, inst);
     end
   end
 
@@ -61,7 +61,8 @@ module top (
   wire [31:0] imm;
   wire add_en, addi_en, lui_en, lw_en, lbu_en, sw_en, sb_en, jalr_en, ebreak_en, auipc_en, jal_en;
   wire sub_en, sltiu_en, beq_en, bne_en, sltu_en, xor_en, or_en, sh_en, srai_en, andi_en, sll_en;
-  wire and_en;
+  wire and_en, xori_en, bge_en, blt_en, srli_en, bgeu_en, slli_en, bltu_en, sra_en, srl_en, lh_en;
+  wire lhu_en, lb_en, ori_en, slti_en, slt_en;
   wire [11:0] I_imm, S_imm;
   wire [12:0] B_imm;
   wire [31:0] U_imm;
@@ -76,13 +77,71 @@ module top (
     .sw_en(sw_en), .sb_en(sb_en), .jalr_en(jalr_en), .ebreak_en(ebreak_en), .auipc_en(auipc_en),
     .jal_en(jal_en), .sub_en(sub_en), .sltiu_en(sltiu_en), .beq_en(beq_en), .bne_en(bne_en),
     .sltu_en(sltu_en), .xor_en(xor_en), .or_en(or_en), .sh_en(sh_en), .srai_en(srai_en),
-    .andi_en(andi_en), .sll_en(sll_en), .and_en(and_en),
+    .andi_en(andi_en), .sll_en(sll_en), .and_en(and_en), .xori_en(xori_en), .bge_en(bge_en),
+    .blt_en(blt_en), .srli_en(srli_en), .bgeu_en(bgeu_en), .slli_en(slli_en), .bltu_en(bltu_en),
+    .sra_en(sra_en), .srl_en(srl_en), .lh_en(lh_en), .lhu_en(lhu_en), .lb_en(lb_en), .ori_en(ori_en),
+    .slti_en(slti_en), .slt_en(slt_en),
 
     .I_imm(I_imm),
     .S_imm(S_imm),
     .B_imm(B_imm),
     .U_imm(U_imm),
     .J_imm(J_imm)
+  );
+
+
+  // =========== EXU 例化 ===========
+  assign imm =  (addi_en | lw_en | lbu_en | jalr_en | sltiu_en | andi_en | xori_en | lh_en | lhu_en |
+                 lb_en | ori_en | slti_en) ? {{20{I_imm[11]}}, I_imm} :
+                (lui_en) ? U_imm :
+                (sw_en | sb_en | sh_en) ? {{20{S_imm[11]}}, S_imm} :
+                (auipc_en) ? U_imm :
+                (jal_en) ? {{11{J_imm[20]}}, J_imm} :
+                (beq_en | bne_en | bge_en | blt_en | bgeu_en | bltu_en) ? {{19{B_imm[12]}}, B_imm} :
+                (srai_en | srli_en | slli_en) ? {27'b0, I_imm[4:0]} : // 特殊立即数（shamt in RV32I）
+                32'b0;
+
+  wire [31:0] ex_next_pc;
+  wire [31:0] ex_rs1_val, ex_rs2_val;
+  wire        ex_ram_we, ex_ram_re, ex_reg_we;
+  wire [31:0] ex_ram_write_addr, ex_ram_write_data, ex_ram_read_addr;
+  wire [3:0]  ex_ram_write_mask;
+  wire [31:0] ex_reg_data;
+  wire [4:0]  ex_reg_addr;
+
+  // 寄存器值输入（rs1 rs2 输入）
+  assign ex_rs1_val = reg_addr1_val;
+  assign ex_rs2_val = reg_addr2_val;
+
+  EXU uEXU (
+    .add_en(add_en), .addi_en(addi_en), .lui_en(lui_en), .lw_en(lw_en), .lbu_en(lbu_en),
+    .sw_en(sw_en), .sb_en(sb_en), .jalr_en(jalr_en), .ebreak_en(ebreak_en), .auipc_en(auipc_en),
+    .jal_en(jal_en), .sub_en(sub_en), .sltiu_en(sltiu_en), .beq_en(beq_en), .bne_en(bne_en),
+    .sltu_en(sltu_en), .xor_en(xor_en), .or_en(or_en), .sh_en(sh_en), .srai_en(srai_en),
+    .andi_en(andi_en), .sll_en(sll_en), .and_en(and_en), .xori_en(xori_en), .bge_en(bge_en),
+    .blt_en(blt_en), .srli_en(srli_en), .bgeu_en(bgeu_en), .slli_en(slli_en), .bltu_en(bltu_en),
+    .sra_en(sra_en), .srl_en(srl_en), .lh_en(lh_en), .lhu_en(lhu_en), .lb_en(lb_en), .ori_en(ori_en),
+    .slti_en(slti_en), .slt_en(slt_en),
+
+    .rs1_val(ex_rs1_val),
+    .rs2_val(ex_rs2_val),
+    .rd_addr(rd_addr),
+    .ram_read_val(ramReadData),
+    .imm(imm),
+    .pc(pc),
+    .next_pc(ex_next_pc),
+
+    .ram_we(ex_ram_we),
+    .ram_write_addr(ex_ram_write_addr),
+    .ram_write_data(ex_ram_write_data),
+    .ram_write_mask(ex_ram_write_mask),
+
+    .ram_re(ex_ram_re),
+    .ram_read_addr(ex_ram_read_addr),
+
+    .reg_we(ex_reg_we),
+    .reg_addr(ex_reg_addr),
+    .reg_data(ex_reg_data)
   );
 
 
@@ -118,57 +177,6 @@ module top (
     .addr2_val(reg_addr2_val),
     .A0_val(A0_val),
     .reg_val(out_reg)
-  );
-
-
-  // =========== EXU 例化 ===========
-  assign imm =  (addi_en | lw_en | lbu_en | jalr_en | sltiu_en | andi_en) ? {{20{I_imm[11]}}, I_imm} :
-                (lui_en) ? U_imm :
-                (sw_en | sb_en | sh_en) ? {{20{S_imm[11]}}, S_imm} :
-                (auipc_en) ? U_imm :
-                (jal_en) ? {{11{J_imm[20]}}, J_imm} :
-                (beq_en | bne_en) ? {{19{B_imm[12]}}, B_imm} :
-                (srai_en) ? {27'b0, I_imm[4:0]} :
-                32'b0;
-
-  wire [31:0] ex_next_pc;
-  wire [31:0] ex_rs1_val, ex_rs2_val;
-  wire        ex_ram_we, ex_ram_re, ex_reg_we;
-  wire [31:0] ex_ram_write_addr, ex_ram_write_data, ex_ram_read_addr;
-  wire [3:0]  ex_ram_write_mask;
-  wire [31:0] ex_reg_data;
-  wire [4:0]  ex_reg_addr;
-
-  // 寄存器值输入（rs1 rs2 输入）
-  assign ex_rs1_val = reg_addr1_val;
-  assign ex_rs2_val = reg_addr2_val;
-
-  EXU uEXU (
-    .add_en(add_en), .addi_en(addi_en), .lui_en(lui_en), .lw_en(lw_en), .lbu_en(lbu_en),
-    .sw_en(sw_en), .sb_en(sb_en), .jalr_en(jalr_en), .ebreak_en(ebreak_en), .auipc_en(auipc_en),
-    .jal_en(jal_en), .sub_en(sub_en), .sltiu_en(sltiu_en), .beq_en(beq_en), .bne_en(bne_en),
-    .sltu_en(sltu_en), .xor_en(xor_en), .or_en(or_en), .sh_en(sh_en), .srai_en(srai_en),
-    .andi_en(andi_en), .sll_en(sll_en), .and_en(and_en),
-
-    .rs1_val(ex_rs1_val),
-    .rs2_val(ex_rs2_val),
-    .rd_addr(rd_addr),
-    .ram_read_val(ramReadData),
-    .imm(imm),
-    .pc(pc),
-    .next_pc(ex_next_pc),
-
-    .ram_we(ex_ram_we),
-    .ram_write_addr(ex_ram_write_addr),
-    .ram_write_data(ex_ram_write_data),
-    .ram_write_mask(ex_ram_write_mask),
-
-    .ram_re(ex_ram_re),
-    .ram_read_addr(ex_ram_read_addr),
-
-    .reg_we(ex_reg_we),
-    .reg_addr(ex_reg_addr),
-    .reg_data(ex_reg_data)
   );
 
 

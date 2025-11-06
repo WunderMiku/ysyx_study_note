@@ -23,13 +23,28 @@ module EXU (
 	input andi_en,
 	input sll_en,
 	input and_en,
+	input xori_en,
+	input bge_en,
+	input blt_en,
+	input srli_en,
+	input bgeu_en,
+	input slli_en,
+	input bltu_en,
+	input sra_en,
+	input srl_en,
+	input lh_en,
+	input lhu_en,
+	input lb_en,
+	input ori_en,
+	input slti_en,
+	input slt_en,
 
 	// 数据输入
 	input  [31:0] rs1_val,
 	input  [31:0] rs2_val,
 	input  [4:0]  rd_addr,
 	input  [31:0] ram_read_val,
-	input  [31:0] imm, // 均为符号扩展后的立即数
+	input  [31:0] imm, // 符号扩展后的立即数 (除有特殊要求的个别指令)
 
 	// PC相关
 	input  [31:0] pc,
@@ -56,7 +71,9 @@ module EXU (
 	// 寄存器写使能
 	assign reg_we = (add_en | addi_en | jalr_en | lui_en | lbu_en | lw_en |
 									 auipc_en | jal_en | sub_en | sltiu_en | sltu_en | xor_en |
-									 or_en | srai_en | andi_en | sll_en | and_en) && (reg_addr != 5'b0);
+									 or_en | srai_en | andi_en | sll_en | and_en | xori_en |
+									 srli_en | slli_en | sra_en | srl_en | lh_en | lhu_en | 
+									 lb_en | ori_en | slti_en | slt_en) && (reg_addr != 5'b0);
 
 	// 寄存器写入数据
 	assign reg_data = ({32{add_en}} & (rs1_val + rs2_val)) |
@@ -72,22 +89,43 @@ module EXU (
 										({32{sltu_en}} & {31'b0, (rs1_val < rs2_val)}) |
 										({32{xor_en}} & (rs1_val ^ rs2_val)) |
 										({32{or_en}} & (rs1_val | rs2_val)) |
-										({32{srai_en}} & (rs1_val >>> imm)) |
+										({32{srai_en}} & (rs1_val[31] ? (32'hFFFFFFFF << (32 - imm) | (rs1_val >> imm)) : 
+										(rs1_val >> imm))) | // 不支持算术右移运算符
+
 										({32{andi_en}} & (rs1_val & imm)) |
 										({32{sll_en}} & (rs1_val << rs2_val[4:0])) |
-										({32{and_en}} & (rs1_val & rs2_val));
+										({32{and_en}} & (rs1_val & rs2_val)) |
+										({32{xori_en}} & (rs1_val ^ imm)) |
+										({32{srli_en}} & (rs1_val >> imm)) |
+										({32{slli_en}} & (rs1_val << imm)) |
+										({32{sra_en}} & (rs1_val[31] ? (32'hFFFFFFFF << (32 - rs2_val[4:0]) | (rs1_val >> rs2_val[4:0])) : 
+										(rs1_val >> rs2_val[4:0]))) | // 不支持算术右移运算符
+
+										({32{srl_en}} & (rs1_val >> rs2_val[4:0])) |
+										({32{lh_en}} & ({{16{ram_read_offset_hval[15]}}, ram_read_offset_hval})) |
+										({32{lhu_en}} & ({16'b0, ram_read_offset_hval})) |
+										({32{lb_en}} & ({{24{ram_read_offset_val[7]}}, ram_read_offset_val})) |
+										({32{ori_en}} & (rs1_val | imm)) |
+										({32{slti_en}} & {31'b0, ($signed(rs1_val) < $signed(imm))}) |
+										({32{slt_en}} & {31'b0, ($signed(rs1_val) < $signed(rs2_val))});
 
 	// 寄存器写入地址
 	assign reg_addr = ({5{add_en | addi_en | jalr_en | lui_en | lbu_en | lw_en |
 												auipc_en | jal_en | sub_en | sltiu_en | sltu_en | xor_en |
-												or_en | srai_en | andi_en | sll_en | and_en}} & rd_addr) | 5'b0;
-
+												or_en | srai_en | andi_en | sll_en | and_en | xori_en |
+												srli_en | slli_en | sra_en | srl_en | lh_en | lhu_en |
+												lb_en | ori_en | slti_en | slt_en}} & rd_addr) | 5'b0;
+												
 
 	// =========== PC信号控制 =========== 
 	assign next_pc =  (jalr_en) ? ((rs1_val + imm) & 32'hFFFFFFFE) :
 								  	(jal_en) ? (pc + imm) :
 										(beq_en & (rs1_val == rs2_val)) ? (pc + imm) :
 										(bne_en & (rs1_val != rs2_val)) ? (pc + imm) :
+										(bge_en & ($signed(rs1_val) >= $signed(rs2_val))) ? (pc + imm) : // 支持有符号比较
+										(blt_en & ($signed(rs1_val) < $signed(rs2_val))) ? (pc + imm) :
+										(bgeu_en & (rs1_val >= rs2_val)) ? (pc + imm) :
+										(bltu_en & (rs1_val < rs2_val)) ? (pc + imm) :
 									  (pc + 4);
 
 
@@ -110,21 +148,33 @@ module EXU (
 																				 ram_write_addr[1:0] == 2'd0, 
 																				 ram_write_addr[1:0] == 2'd0});
 
-	assign ram_re = lbu_en | lw_en;
+	assign ram_re = lbu_en | lw_en | lh_en | lhu_en | lb_en;
 
-	assign ram_read_addr = ({32{lbu_en | lw_en}} & (rs1_val + imm));
+	assign ram_read_addr = ({32{lbu_en | lw_en | lh_en | lhu_en | lb_en}} & (rs1_val + imm));
 
 
 	// 单字节读取
 	reg [7:0] ram_read_offset_val;
+	reg [15:0] ram_read_offset_hval;
 	always @(*) begin 
-		case(ram_read_addr[1:0])
-			2'd0: ram_read_offset_val = ram_read_val[7:0];
-			2'd1: ram_read_offset_val = ram_read_val[15:8];
-			2'd2: ram_read_offset_val = ram_read_val[23:16];
-			2'd3: ram_read_offset_val = ram_read_val[31:24];
-		endcase
+		if(lbu_en | lb_en) begin
+			case(ram_read_addr[1:0])
+				2'd0: ram_read_offset_val = ram_read_val[7:0];
+				2'd1: ram_read_offset_val = ram_read_val[15:8];
+				2'd2: ram_read_offset_val = ram_read_val[23:16];
+				2'd3: ram_read_offset_val = ram_read_val[31:24];
+			endcase
+		end
+
+		if(lh_en | lhu_en) begin
+			case(ram_read_addr[1:0])
+				2'd0: ram_read_offset_hval = ram_read_val[15:0];
+				2'd2: ram_read_offset_hval = ram_read_val[31:16];
+				default: ram_read_offset_hval = 16'b0;
+			endcase
+		end
 	end
+
 
 
   // =========== DPI-C 信号传递 ===========
