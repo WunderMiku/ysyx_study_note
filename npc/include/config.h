@@ -12,5 +12,6 @@
 // #define Ftrace_enable
 #define Watchpoint_enable
 #define Difftest_enable
+// #define Mtrace_enable
 
 #endif

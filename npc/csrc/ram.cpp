@@ -5,19 +5,28 @@
 #include <cstdint>
 
 
-extern "C" int pmem_read(int raddr, int len) {
-	if(raddr < MEM_BASE || raddr >= MEM_BASE + MEM_SIZE) {
-		return deviceRead(raddr);
-	}
-	
-	uint32_t paddr = (raddr - MEM_BASE) >> 2;
-
+static uint32_t get_mask_data(int paddr, int len) {
 	switch (len) {
     case 1: return (uint8_t)  M[paddr];
     case 2: return (uint16_t) M[paddr];
     case 4: return (uint32_t) M[paddr];
     default: assert(0);
   }
+}
+
+extern "C" int pmem_read(int raddr, int len) {
+	if(raddr < MEM_BASE || raddr >= MEM_BASE + MEM_SIZE) {
+		return deviceRead(raddr);
+	}
+
+	uint32_t paddr = (raddr - MEM_BASE) >> 2;
+	uint32_t data = M[paddr];
+
+	data = get_mask_data(paddr, len);
+#ifdef Mtrace_enable
+	printf(COLOR_CYAN "[pmem_read] " COLOR_NONE " read [%d bit(s)] " COLOR_YELLOW "0x%08x" COLOR_NONE " from addr " COLOR_GREEN "0x%08x" COLOR_NONE " at pc = 0x%08x\n", len, data, paddr, cpu.pc);
+#endif
+	return data;
 }
 extern "C" void pmem_write(int waddr, int wdata, char wmask) {
 	if((waddr < MEM_BASE || waddr >= MEM_BASE + MEM_SIZE) && waddr != SERIAL_PORT) {
@@ -41,6 +50,9 @@ extern "C" void pmem_write(int waddr, int wdata, char wmask) {
 
 	uint32_t wdata_ = (current & ~byteMask) | (wdata & byteMask);
 	M[vaddr >> 2] = wdata_;
+#ifdef Mtrace_enable
+	printf(COLOR_MAGENTA "[pmem_write]" COLOR_NONE " [mask : %c] " COLOR_YELLOW "0x%08x" COLOR_NONE " to addr " COLOR_GREEN "0x%08x" COLOR_NONE " at pc = 0x%08x\n", wmask, wdata_, vaddr >> 2, cpu.pc);
+#endif
 }
 
 int paddr_read(int raddr, int len) {
@@ -54,3 +66,4 @@ int paddr_read(int raddr, int len) {
 uint32_t fetchInst(uint32_t pc) {
 	return pmem_read(pc, 4);
 }
+
