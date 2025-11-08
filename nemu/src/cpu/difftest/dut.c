@@ -125,7 +125,6 @@ static void checkregs(CPU_state *ref, vaddr_t pc) {
     // 寄存器状态不一致，终止执行
     nemu_state.state = NEMU_ABORT;
     nemu_state.halt_pc = pc;
-    isa_reg_display();  // 显示寄存器状态用于调试
   }
 }
 

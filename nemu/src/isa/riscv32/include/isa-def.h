@@ -18,9 +18,20 @@
 
 #include <common.h>
 
+typedef enum {
+  CSR_ADDR_MEPC     = 0x341,
+  CSR_ADDR_MSTATUS  = 0x300,
+  CSR_ADDR_MCAUSE   = 0x342,
+  CSR_ADDR_MTVEC    = 0x305,
+  CSR_COUNT         = 0x4,
+} csr_addr_t;
+
 typedef struct {
   word_t gpr[MUXDEF(CONFIG_RVE, 16, 32)];
   vaddr_t pc;
+
+  // 控制状态寄存器
+  word_t csr[CSR_COUNT];
 } MUXDEF(CONFIG_RV64, riscv64_CPU_state, riscv32_CPU_state);
 
 // decode

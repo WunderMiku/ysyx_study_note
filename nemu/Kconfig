@@ -146,6 +146,10 @@ config FTRACE
   bool "Enable ftrace"
   default y
 
+config ETRACE
+  bool "Enable etrace"
+  default y
+
 config TRACE_START
   depends on TRACE
   int "When tracing is enabled (unit: number of instructions)"

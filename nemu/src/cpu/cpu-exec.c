@@ -17,6 +17,7 @@
 #include <cpu/decode.h>
 #include <cpu/difftest.h>
 #include <locale.h>
+#include "isa.h"
 #include "ringbuf.h"
 #include "utils.h"
 #include "funget.h"
@@ -48,6 +49,9 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
   
   // ftrace 检测与输出
   if(Elf_Files_Get) {IFDEF(CONFIG_FTRACE, funget_detect(_this->pc, cpu.pc, _this->isa.inst));}
+
+  // etrace 检测与输出
+  IFDEF(CONFIG_ETRACE, etrace(_this->pc, cpu.pc, _this->isa.inst));
 
   #ifdef CONFIG_WATCHPOINT
   // 临时修改pc为了让watchpoint模块能正确获取到pc
@@ -139,8 +143,9 @@ void cpu_exec(uint64_t n) {
 
   switch (nemu_state.state) {
     case NEMU_RUNNING: nemu_state.state = NEMU_STOP; break;
-
-    case NEMU_END: case NEMU_ABORT:
+    case NEMU_ABORT:
+      isa_reg_display();
+    case NEMU_END: 
 #ifndef CONFIG_TARGET_SHARE
       Log("nemu: %s at pc = " FMT_WORD,
           (nemu_state.state == NEMU_ABORT ? ANSI_FMT("ABORT", ANSI_FG_RED) :

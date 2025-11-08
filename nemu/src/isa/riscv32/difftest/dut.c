@@ -16,6 +16,7 @@
 #include <isa.h>
 #include <cpu/difftest.h>
 #include "../local-include/reg.h"
+#include "isa-def.h"
 
 /*
  * RISC-V 32位架构的difftest寄存器检查实现
@@ -44,6 +45,14 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
       return false;
     }
 
+  for(int i = 0; i < CSR_COUNT; i++) {
+    if(ref_r->csr[i] != csr(i)) {
+      printf("Difftest failed at pc = " FMT_WORD "\n", pc);
+      printf("csr %d: ref " FMT_WORD ", dut " FMT_WORD "\n",
+          i, ref_r->csr[i], csr(i));
+      return false;
+    }
+  }
   return true;
 }
 

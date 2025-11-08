@@ -8,9 +8,14 @@ Context* __am_irq_handle(Context *c) {
   if (user_handler) {
     Event ev = {0};
     switch (c->mcause) {
-      default: ev.event = EVENT_ERROR; break;
+      case 0xb: 
+              ev.event = EVENT_YIELD; 
+              c->mepc += 4; // 这里或是测试程序里面+4即可，均属于软件处理
+              break;
+      default: 
+              ev.event = EVENT_ERROR; break;
     }
-
+    // printf("trap at pc :0x%08x\n", c->mepc);
     c = user_handler(ev, c);
     assert(c != NULL);
   }

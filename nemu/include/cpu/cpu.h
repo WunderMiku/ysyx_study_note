@@ -31,4 +31,7 @@ void delete_all_using_wp();
 #define NEMUTRAP(thispc, code) set_nemu_state(NEMU_END, thispc, code)
 #define INV(thispc) invalid_inst(thispc)
 
+// etrace
+void etrace(uint32_t before_pc, uint32_t pc, uint32_t inst);
+
 #endif

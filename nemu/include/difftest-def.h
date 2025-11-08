@@ -37,6 +37,7 @@ enum {
 typedef struct {
   word_t gpr[MUXDEF(CONFIG_RVE, 16, 32)];  /* 通用寄存器 */
   word_t pc;                               /* 程序计数器 */
+  word_t csr[4];
 } diff_context_t;
 
 /* 不同ISA架构的寄存器大小定义 */

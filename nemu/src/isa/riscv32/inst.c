@@ -14,6 +14,9 @@
 ***************************************************************************************/
 
 #include "common.h"
+#include "isa-def.h"
+#include "isa.h"
+#include "cpu/difftest.h"
 #include "local-include/reg.h"
 #include <cpu/cpu.h>
 #include <cpu/ifetch.h>
@@ -21,6 +24,7 @@
 #include <stdint.h>
 
 #define R(i) gpr(i)
+#define C(i) csr(csr_addr_to_idx(i))
 #define Mr vaddr_read
 #define Mw vaddr_write
 
@@ -131,6 +135,12 @@ static int decode_exec(Decode *s) {
   INSTPAT("??????? ????? ????? 010 ????? 00100 11", slti   , I, R(rd) = ((sword_t)src1 < (sword_t)imm)? 1:0);
 
   INSTPAT("0000000 00001 00000 000 00000 11100 11", ebreak , N, NEMUTRAP(s->pc, R(10))); // R(10) is $a0
+
+  INSTPAT("??????? ????? ????? 001 ????? 11100 11", csrrw  , I, word_t t = C(imm); C(imm) = src1; R(rd) = t);
+  INSTPAT("0000000 00000 00000 000 00000 11100 11", ecall  , I, C(CSR_ADDR_MEPC) = s->pc, C(CSR_ADDR_MCAUSE) = 0xb, s->dnpc = C(CSR_ADDR_MTVEC));
+  INSTPAT("??????? ????? ????? 010 ????? 11100 11", csrrs  , I, word_t t = C(imm); C(imm) |= src1; R(rd) = t);
+  INSTPAT("0011000 00010 00000 000 00000 11100 11", mret   , R, difftest_skip_ref(), s->dnpc = C(CSR_ADDR_MEPC));
+
   INSTPAT("??????? ????? ????? ??? ????? ????? ??", inv    , N, INV(s->pc)); // 不要写到这个下面！
   INSTPAT_END();
 

@@ -15,11 +15,11 @@
 
 #include <isa.h>
 
+// ecall 未调用这个函数，改为直接在inst执行
 word_t isa_raise_intr(word_t NO, vaddr_t epc) {
-  /* TODO: Trigger an interrupt/exception with ``NO''.
-   * Then return the address of the interrupt/exception vector.
-   */
-
+  cpu.csr[0] = epc;     // set mepc
+  cpu.csr[2] = NO;      // set mcause
+  cpu.pc = cpu.csr[3];  // jump to mtvec
   return 0;
 }
 

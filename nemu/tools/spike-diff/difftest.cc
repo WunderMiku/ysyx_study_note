@@ -18,6 +18,17 @@
 #include "../../include/common.h"
 #include <difftest-def.h>
 
+typedef enum {
+  CSR_ADDR_MEPC     = 0x341,
+  CSR_ADDR_MSTATUS  = 0x300,
+  CSR_ADDR_MCAUSE   = 0x342,
+  CSR_ADDR_MTVEC    = 0x305,
+  CSR_COUNT         = 0x4,
+} csr_addr_t;
+const uint32_t csrs_addr[CSR_COUNT] = {
+  CSR_ADDR_MEPC, CSR_ADDR_MSTATUS, CSR_ADDR_MCAUSE, CSR_ADDR_MTVEC
+};
+
 /*
  * Spike参考实现的difftest接口
  * Spike是一个开源的RISC-V ISA模拟器，用作参考实现
@@ -73,6 +84,9 @@ void sim_t::diff_get_regs(void* diff_context) {
   for (int i = 0; i < NR_GPR; i++) {
     ctx->gpr[i] = state->XPR[i];  /* 复制通用寄存器 */
   }
+  for(int i = 0; i < CSR_COUNT; i++) {
+    ctx->csr[i] = state->csrmap[csrs_addr[i]]->read();  /* 复制CSR寄存器 */
+  }
   ctx->pc = state->pc;            /* 复制程序计数器 */
 }
 
@@ -84,6 +98,9 @@ void sim_t::diff_set_regs(void* diff_context) {
   diff_context_t* ctx = (diff_context_t*)diff_context;
   for (int i = 0; i < NR_GPR; i++) {
     state->XPR.write(i, (sword_t)ctx->gpr[i]);  /* 设置通用寄存器 */
+  }
+  for(int i = 0; i < CSR_COUNT; i++) {
+    state->csrmap[csrs_addr[i]]->write(ctx->csr[i]);  /* 设置CSR寄存器 */
   }
   state->pc = ctx->pc;                          /* 设置程序计数器 */
 }
