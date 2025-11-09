@@ -61,23 +61,32 @@ void funget_detect(vaddr_t before_pc, vaddr_t pc, uint32_t inst) {
 	if(!(fun_get.is_call || fun_get.is_ret || fun_get.is_move)) return; // 都不是，不输出
 
 	// 输出部分
-	assert(before_fun_index >= 0 && fun_index >= 0);
+	if (!(before_fun_index >= 0 && fun_index >= 0)) {
+		if (before_fun_index >= 0){
+			printf(ANSI_FG_RED " (MISS) " ANSI_NONE ANSI_FG_BLACK "%s(0x%08x) -> (0x%08x)\n",fun_get.funcs[before_fun_index].name, before_pc, pc);
+		} else if (fun_index >= 0) {
+			printf(ANSI_FG_RED " (MISS) " ANSI_NONE ANSI_FG_BLACK "(0x%08x)-> %s(0x%08x)\n", before_pc,  fun_get.funcs[fun_index].name, pc);
+		} else {
+			printf(ANSI_FG_RED " (MISS) " ANSI_NONE ANSI_FG_BLACK "(0x%08x) -> (0x%08x)\n", before_pc, pc);
+		}
+		return;
+	}
 	assert(before_fun_index != fun_index);
 
 	if(fun_get.is_call) {
 		fun_get.call_level++;
 		int i = fun_get.call_level - 1;
 		while(i-- > 0) printf(" ");
-		printf(ANSI_FG_GREEN " (Call) " ANSI_NONE ANSI_FG_YELLOW "%s" ANSI_NONE "(0x%x) -> " ANSI_FG_GREEN "%s"\
-			 ANSI_NONE "(0x%x)\n",fun_get.funcs[before_fun_index].name, before_pc, fun_get.funcs[fun_index].name, pc);
+		printf(ANSI_FG_GREEN " (Call) " ANSI_NONE ANSI_FG_YELLOW "%s" ANSI_NONE "(0x%08x) -> " ANSI_FG_GREEN "%s"\
+			 ANSI_NONE "(0x%08x)\n",fun_get.funcs[before_fun_index].name, before_pc, fun_get.funcs[fun_index].name, pc);
 	}
 
 	if(fun_get.is_ret) {
 		fun_get.call_level--;
 		int i = fun_get.call_level - 1;
 		while(i-- > 0) printf(" ");
-		printf(ANSI_FG_YELLOW " (Ret) " ANSI_NONE ANSI_FG_GREEN "%s"ANSI_NONE"(0x%x) <- " ANSI_FG_YELLOW "%s"\
-			 ANSI_NONE "(0x%x)\n",fun_get.funcs[fun_index].name, pc, fun_get.funcs[before_fun_index].name, before_pc);
+		printf(ANSI_FG_YELLOW " (Ret) " ANSI_NONE ANSI_FG_GREEN "%s"ANSI_NONE"(0x%08x) <- " ANSI_FG_YELLOW "%s"\
+			 ANSI_NONE "(0x%08x)\n",fun_get.funcs[fun_index].name, pc, fun_get.funcs[before_fun_index].name, before_pc);
 	}
 
 	if(fun_get.is_move && !fun_get.is_ret) {
@@ -238,13 +247,23 @@ void parse_symbol_table(const void *addr) {
 
 	for(int j = 0; j < sym_num; j++) {
 		const Elf32_Sym *sym = (const Elf32_Sym *)(sym_base + j * sizeof(Elf32_Sym));
-		if(ELF32_ST_TYPE(sym->st_info) != STT_FUNC) continue; // 只处理函数类型符号
-		// printf("Symbol %d at: %p\n", j, sym);
-		// printf("Name: %s\n", (char *)(strtab_base + sym->st_name));
-		// printf("Value: %x\n", sym->st_value);
-		// printf("Size: %x\n", sym->st_size);
+		if(ELF32_ST_TYPE(sym->st_info) != STT_FUNC) continue; // 优先处理函数类型符号
+		printf("Symbol %d at: %p\n", j, sym);
+		printf("Name: %s\n", (char *)(strtab_base + sym->st_name));
+		printf("Value: %x\n", sym->st_value);
+		printf("Size: %x\n", sym->st_size);
 		funget_set_function((char *)(strtab_base + sym->st_name), sym->st_value, sym->st_size);
 	}	
+	// printf("=============================\n");
+	// for(int j = 0; j < sym_num; j++) {
+	// 	const Elf32_Sym *sym = (const Elf32_Sym *)(sym_base + j * sizeof(Elf32_Sym));
+	// 	if(ELF32_ST_TYPE(sym->st_info) != STT_NOTYPE) continue; // 而后处理无类型符号
+	// 	printf("Symbol %d at: %p\n", j, sym);
+	// 	printf("Name: %s\n", (char *)(strtab_base + sym->st_name));
+	// 	printf("Value: %x\n", sym->st_value);
+	// 	printf("Size: %x\n", sym->st_size);
+	// 	funget_set_function((char *)(strtab_base + sym->st_name), sym->st_value, sym->st_size);
+	// }	
 }
 
 // 输出elf节头表

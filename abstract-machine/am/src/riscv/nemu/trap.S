@@ -39,6 +39,7 @@ f(30) f(31)
 
 .align 3
 .globl __am_asm_trap
+.type __am_asm_trap, @function 
 __am_asm_trap:
   addi sp, sp, -CONTEXT_SIZE  // 这里开辟栈空间，并开始复制上下文到栈中
 
@@ -69,3 +70,5 @@ __am_asm_trap:
 
   addi sp, sp, CONTEXT_SIZE
   mret
+
+.size __am_asm_trap, . - __am_asm_trap
