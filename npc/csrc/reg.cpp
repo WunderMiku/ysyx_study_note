@@ -12,10 +12,17 @@ const char *regs[] = {
   "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"
 };
 
+const char *csrs[] = {
+  "mepc", "mstatus", "mcause", "mtvec"
+};
 void isa_reg_display() {
   printf(COLOR_DYELLOW "\n===== Registers =====\n" COLOR_NONE);
   for (int i = 0; i < ARRLEN(regs); i++) {
     printf(COLOR_YELLOW "%s" COLOR_NONE ": 0x%08x " COLOR_DYELLOW "   ||"  COLOR_NONE "\n", regs[i], gpr(i));
+  }
+  printf(COLOR_DYELLOW "\n===== CSRS =====\n" COLOR_NONE);
+  for (int i = 0; i < ARRLEN(csrs); i++) {
+    printf(COLOR_YELLOW "%s" COLOR_NONE ": 0x%08x " COLOR_DYELLOW "   ||"  COLOR_NONE "\n", csrs[i], dut->out_csr[i]);
   }
   printf("\n");
 }

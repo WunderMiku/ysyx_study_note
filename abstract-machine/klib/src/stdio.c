@@ -293,7 +293,10 @@ int vsprintf(char *out, const char *fmt, va_list ap) {
         break;
 
       default:
-      panic("Unsupported format string!");
+      printf("Unsupported format string: %c\n", *fmt);
+      // assert(0);
+      *out = 0;
+      return ret;
     }
   }
   *out = 0; // add '\0'

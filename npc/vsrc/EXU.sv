@@ -38,6 +38,10 @@ module EXU (
 	input ori_en,
 	input slti_en,
 	input slt_en,
+	input csrrc_en,
+	input csrrs_en,
+	input csrrw_en,
+	input ecall_en,
 
 	// 数据输入
 	input  [31:0] rs1_val,
@@ -65,7 +69,21 @@ module EXU (
 	// 寄存器接口
 	output        reg_we,
 	output [4:0]  reg_addr,
-	output [31:0] reg_data
+	output [31:0] reg_data,
+
+	// CSR 读接口
+	output [11:0] csr_raddr,
+	input  [31:0] csr_rdata,
+
+	// CSR 写接口
+	output csr_we,
+	output [11:0] csr_waddr,
+	output [31:0] csr_wdata,
+
+	// CSR 附加写接口
+	output csr_we1,
+	output [11:0] csr_waddr1,
+	output [31:0] csr_wdata1
 );
 	// =========== 寄存器信号控制 =========== 
 	// 寄存器写使能
@@ -73,7 +91,8 @@ module EXU (
 									 auipc_en | jal_en | sub_en | sltiu_en | sltu_en | xor_en |
 									 or_en | srai_en | andi_en | sll_en | and_en | xori_en |
 									 srli_en | slli_en | sra_en | srl_en | lh_en | lhu_en | 
-									 lb_en | ori_en | slti_en | slt_en) && (reg_addr != 5'b0);
+									 lb_en | ori_en | slti_en | slt_en | csrrc_en | csrrs_en|
+									 csrrw_en) && (reg_addr != 5'b0);
 
 	// 寄存器写入数据
 	assign reg_data = ({32{add_en}} & (rs1_val + rs2_val)) |
@@ -107,14 +126,16 @@ module EXU (
 										({32{lb_en}} & ({{24{ram_read_offset_val[7]}}, ram_read_offset_val})) |
 										({32{ori_en}} & (rs1_val | imm)) |
 										({32{slti_en}} & {31'b0, ($signed(rs1_val) < $signed(imm))}) |
-										({32{slt_en}} & {31'b0, ($signed(rs1_val) < $signed(rs2_val))});
+										({32{slt_en}} & {31'b0, ($signed(rs1_val) < $signed(rs2_val))}) |
+										({32{csrrc_en | csrrs_en | csrrw_en}} & (csr_rdata));
 
 	// 寄存器写入地址
 	assign reg_addr = ({5{add_en | addi_en | jalr_en | lui_en | lbu_en | lw_en |
 												auipc_en | jal_en | sub_en | sltiu_en | sltu_en | xor_en |
 												or_en | srai_en | andi_en | sll_en | and_en | xori_en |
 												srli_en | slli_en | sra_en | srl_en | lh_en | lhu_en |
-												lb_en | ori_en | slti_en | slt_en}} & rd_addr) | 5'b0;
+												lb_en | ori_en | slti_en | slt_en | csrrc_en | csrrs_en|
+												csrrw_en}} & rd_addr) | 5'b0;
 												
 
 	// =========== PC信号控制 =========== 
@@ -126,6 +147,7 @@ module EXU (
 										(blt_en & ($signed(rs1_val) < $signed(rs2_val))) ? (pc + imm) :
 										(bgeu_en & (rs1_val >= rs2_val)) ? (pc + imm) :
 										(bltu_en & (rs1_val < rs2_val)) ? (pc + imm) :
+										(ecall_en) ? (csr_rdata) :
 									  (pc + 4);
 
 
@@ -175,7 +197,30 @@ module EXU (
 		end
 	end
 
+	// =========== CSR信号控制 =========== 
+	assign csr_we = (csrrc_en | csrrs_en | csrrw_en | ecall_en);
 
+	assign csr_waddr = ({12{csrrc_en | csrrs_en | csrrw_en}} & imm[11:0]) |
+		                 ({12{ecall_en}} & 12'h341) | // mepc
+	                   12'b0;
+
+	assign csr_wdata = ({32{csrrc_en}} & ((~rs1_val) | csr_rdata)) |
+			               ({32{csrrs_en}} & (rs1_val | csr_rdata)) |
+										 ({32{csrrw_en}} & rs1_val) |
+										 ({32{ecall_en}} & (pc)) |
+	                   32'b0; 
+	
+	assign csr_raddr = ({12{csrrc_en | csrrs_en | csrrw_en}} & imm[11:0]) |
+		                 ({12{ecall_en}} & 12'h305) | // mtvec
+	                   12'b0;
+	
+	assign csr_we1 = ecall_en;
+
+	assign csr_waddr1 = ({12{ecall_en}} & 12'h342) | // mcause
+	                    12'b0; 
+
+	assign csr_wdata1 = ({32{ecall_en}} & (32'h0000000b)) |
+	                    32'b0;
 
   // =========== DPI-C 信号传递 ===========
 	export "DPI-C" function ebreak_get;

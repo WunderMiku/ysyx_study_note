@@ -1,5 +1,6 @@
 #include <am.h>
 #include <klib-macros.h>
+#include <stdio.h>
 #include "riscv/npc/include/npc.h"
 
 extern char _heap_start;
@@ -22,7 +23,23 @@ void halt(int code) {
   while (1);
 }
 
+void print_int_as_chars(int value) {
+  for (int i = 3; i >= 0; i--) {
+      char c = (value >> (i * 8)) & 0xFF;
+      printf("%c", c);
+  }
+}
+static inline void print_msg(void) {
+	unsigned int mvendorid, marchid;
+
+	asm volatile ("csrr %0, mvendorid" : "=r"(mvendorid)); 
+	asm volatile ("csrr %0, marchid" : "=r"(marchid));
+	print_int_as_chars(mvendorid);
+	printf("-%d\n", marchid);
+}
+
 void _trm_init() {
+  print_msg(); // For difftest: OFF need
   int ret = main(mainargs);
   halt(ret);
 }

@@ -43,6 +43,10 @@ module IDU (
 	output ori_en,
 	output slti_en,
 	output slt_en,
+	output csrrc_en,
+	output csrrs_en,
+	output csrrw_en,
+	output ecall_en,
 
 	// 立即数
 	output [11:0] I_imm,
@@ -109,5 +113,10 @@ assign ori_en   =  (opcode == 7'b0010011) && (funct3 == 3'b110);
 
 assign slti_en  =  (opcode == 7'b0010011) && (funct3 == 3'b010);
 assign slt_en   =  (opcode == 7'b0110011) && (funct3 == 3'b010) && (funct7 == 7'b0000000);
+
+assign csrrc_en =  (opcode == 7'b1110011) && (funct3 == 3'b011);
+assign csrrs_en =  (opcode == 7'b1110011) && (funct3 == 3'b010);
+assign csrrw_en =  (opcode == 7'b1110011) && (funct3 == 3'b001);
+assign ecall_en =  (inst == 32'h00000073);
 
 endmodule

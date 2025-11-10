@@ -8,6 +8,10 @@ Context* __am_irq_handle(Context *c) {
   if (user_handler) {
     Event ev = {0};
     switch (c->mcause) {
+      case 0xb: 
+              ev.event = EVENT_YIELD; 
+              c->mepc += 4; // 这里或是测试程序里面+4即可，均属于软件处理
+              break;
       default: ev.event = EVENT_ERROR; break;
     }
 
@@ -31,7 +35,16 @@ bool cte_init(Context*(*handler)(Event, Context*)) {
 }
 
 Context *kcontext(Area kstack, void (*entry)(void *), void *arg) {
-  return NULL;
+  assert(kstack.end != NULL);
+  assert(entry != NULL);
+  assert(arg != NULL);
+
+  Context *c = (Context*)kstack.end - 1; // 自栈底开辟空间
+  c->gpr[10] = (uintptr_t)arg;  // 传入参数
+  c->mepc = (uintptr_t)entry;   // 设置初始函数
+  c->mstatus = 0x1800;          // For difftest
+
+  return c;
 }
 
 void yield() {

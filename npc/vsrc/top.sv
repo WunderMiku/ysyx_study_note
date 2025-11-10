@@ -16,13 +16,14 @@ module top (
   // 调试接口
   output [31:0] out_pc,
   output [31:0] out_reg [31:0],
+  output [31:0] out_csr [3:0],
   output inst_valid_flag
 );
   // =========== 调试接口实现 ===========
   assign inst_valid_flag = |{add_en, addi_en, lui_en, lw_en, lbu_en, sw_en, sb_en, jalr_en, ebreak_en, auipc_en, jal_en,
                              sub_en, sltiu_en, beq_en, bne_en, sltu_en, xor_en, or_en, sh_en, srai_en, andi_en, sll_en, 
                              and_en, xori_en, bge_en, blt_en, srli_en, bgeu_en, slli_en, bltu_en, sra_en, srl_en, lh_en,
-                             lhu_en, lb_en, ori_en, slti_en, slt_en};
+                             lhu_en, lb_en, ori_en, slti_en, slt_en, csrrc_en, csrrs_en, csrrw_en, ecall_en};
 
   // =========== IFU实现 ===========
   import "DPI-C" function int pmem_read(input int raddr, input int len);
@@ -62,7 +63,7 @@ module top (
   wire add_en, addi_en, lui_en, lw_en, lbu_en, sw_en, sb_en, jalr_en, ebreak_en, auipc_en, jal_en;
   wire sub_en, sltiu_en, beq_en, bne_en, sltu_en, xor_en, or_en, sh_en, srai_en, andi_en, sll_en;
   wire and_en, xori_en, bge_en, blt_en, srli_en, bgeu_en, slli_en, bltu_en, sra_en, srl_en, lh_en;
-  wire lhu_en, lb_en, ori_en, slti_en, slt_en;
+  wire lhu_en, lb_en, ori_en, slti_en, slt_en, csrrc_en, csrrs_en, csrrw_en, ecall_en;
   wire [11:0] I_imm, S_imm;
   wire [12:0] B_imm;
   wire [31:0] U_imm;
@@ -80,7 +81,8 @@ module top (
     .andi_en(andi_en), .sll_en(sll_en), .and_en(and_en), .xori_en(xori_en), .bge_en(bge_en),
     .blt_en(blt_en), .srli_en(srli_en), .bgeu_en(bgeu_en), .slli_en(slli_en), .bltu_en(bltu_en),
     .sra_en(sra_en), .srl_en(srl_en), .lh_en(lh_en), .lhu_en(lhu_en), .lb_en(lb_en), .ori_en(ori_en),
-    .slti_en(slti_en), .slt_en(slt_en),
+    .slti_en(slti_en), .slt_en(slt_en), .csrrc_en(csrrc_en), .csrrs_en(csrrs_en), .csrrw_en(csrrw_en),
+    .ecall_en(ecall_en),
 
     .I_imm(I_imm),
     .S_imm(S_imm),
@@ -92,7 +94,7 @@ module top (
 
   // =========== EXU 例化 ===========
   assign imm =  (addi_en | lw_en | lbu_en | jalr_en | sltiu_en | andi_en | xori_en | lh_en | lhu_en |
-                 lb_en | ori_en | slti_en) ? {{20{I_imm[11]}}, I_imm} :
+                 lb_en | ori_en | slti_en | csrrc_en | csrrs_en | csrrw_en) ? {{20{I_imm[11]}}, I_imm} :
                 (lui_en) ? U_imm :
                 (sw_en | sb_en | sh_en) ? {{20{S_imm[11]}}, S_imm} :
                 (auipc_en) ? U_imm :
@@ -109,6 +111,17 @@ module top (
   wire [31:0] ex_reg_data;
   wire [4:0]  ex_reg_addr;
 
+  // CSR
+  wire ex_csr_we;
+  wire [11:0] ex_csr_raddr, ex_csr_waddr;
+  wire [31:0] ex_csr_rdata, ex_csr_wdata;
+
+  wire ex_csr_we1;
+  wire [11:0] ex_csr_waddr1;
+  wire [31:0] ex_csr_wdata1;
+
+  assign ex_csr_rdata = csr_rdata;
+
   // 寄存器值输入（rs1 rs2 输入）
   assign ex_rs1_val = reg_addr1_val;
   assign ex_rs2_val = reg_addr2_val;
@@ -121,7 +134,8 @@ module top (
     .andi_en(andi_en), .sll_en(sll_en), .and_en(and_en), .xori_en(xori_en), .bge_en(bge_en),
     .blt_en(blt_en), .srli_en(srli_en), .bgeu_en(bgeu_en), .slli_en(slli_en), .bltu_en(bltu_en),
     .sra_en(sra_en), .srl_en(srl_en), .lh_en(lh_en), .lhu_en(lhu_en), .lb_en(lb_en), .ori_en(ori_en),
-    .slti_en(slti_en), .slt_en(slt_en),
+    .slti_en(slti_en), .slt_en(slt_en), .csrrc_en(csrrc_en), .csrrs_en(csrrs_en), .csrrw_en(csrrw_en),
+    .ecall_en(ecall_en),
 
     .rs1_val(ex_rs1_val),
     .rs2_val(ex_rs2_val),
@@ -141,7 +155,18 @@ module top (
 
     .reg_we(ex_reg_we),
     .reg_addr(ex_reg_addr),
-    .reg_data(ex_reg_data)
+    .reg_data(ex_reg_data),
+
+    .csr_we(ex_csr_we),
+    .csr_raddr(ex_csr_raddr),
+    .csr_rdata(ex_csr_rdata),
+
+    .csr_waddr(ex_csr_waddr),
+    .csr_wdata(ex_csr_wdata),
+
+    .csr_we1(ex_csr_we1),
+    .csr_waddr1(ex_csr_waddr1),
+    .csr_wdata1(ex_csr_wdata1)
   );
 
 
@@ -180,10 +205,51 @@ module top (
   );
 
 
+  // ========= RV32_csrs 例化 ========
+  wire csr_we, csr_we1;
+  wire [31:0] csr_wdata, csr_rdata;
+  wire [11:0] csr_raddr, csr_waddr;
+
+  wire [31:0] csr_wdata1;
+  wire [11:0] csr_waddr1;
+
+  assign csr_we = wb_csr_we;
+  assign csr_wdata = wb_csr_wdata;
+  assign csr_raddr = wb_csr_raddr;
+  assign csr_waddr = wb_csr_waddr;
+
+  assign csr_we1 = wb_csr_we1;
+  assign csr_wdata1 = wb_csr_wdata1;
+  assign csr_waddr1 = wb_csr_waddr1;
+
+  RV32_csrs uRV32_csrs (
+    .clk(clk),
+    .we(csr_we),
+    .waddr(csr_waddr),
+    .wdata(csr_wdata),
+
+    .raddr(csr_raddr),
+    .rdata(csr_rdata),
+
+    .we1(csr_we1),
+    .waddr1(csr_waddr1),
+    .wdata1(csr_wdata1),
+    .out_csr(out_csr)
+  );
+
+
   // =========== WBU 例化 ===========
   wire wb_reg_we;
   wire [4:0] wb_reg_addr;
   wire [31:0] wb_reg_data, wb_next_pc;
+
+  wire wb_csr_we;
+  wire [11:0] wb_csr_raddr, wb_csr_waddr;
+  wire [31:0] wb_csr_wdata;
+
+  wire wb_csr_we1;
+  wire [11:0] wb_csr_waddr1;
+  wire [31:0] wb_csr_wdata1;
 
   WBU uWBU (
     .next_pc_EX(ex_next_pc),
@@ -191,10 +257,30 @@ module top (
     .reg_addr_EX(ex_reg_addr),
     .reg_data_EX(ex_reg_data),
 
+    .csr_we_EX(ex_csr_we),
+    .csr_raddr_EX(ex_csr_raddr),
+
+    .csr_waddr_EX(ex_csr_waddr),
+    .csr_wdata_EX(ex_csr_wdata),
+
+    .csr_we1_EX(ex_csr_we1),
+    .csr_waddr1_EX(ex_csr_waddr1),
+    .csr_wdata1_EX(ex_csr_wdata1),
+
     .reg_we(wb_reg_we),
     .reg_addr(wb_reg_addr),
     .reg_data(wb_reg_data),
-    .next_pc(wb_next_pc)
+    .next_pc(wb_next_pc),
+
+    .csr_we(wb_csr_we),
+    .csr_raddr(wb_csr_raddr),
+
+    .csr_waddr(wb_csr_waddr),
+    .csr_wdata(wb_csr_wdata),
+
+    .csr_we1(wb_csr_we1),
+    .csr_waddr1(wb_csr_waddr1),
+    .csr_wdata1(wb_csr_wdata1)
   );
 
 
