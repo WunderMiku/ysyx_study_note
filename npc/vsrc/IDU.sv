@@ -47,6 +47,7 @@ module IDU (
 	output csrrs_en,
 	output csrrw_en,
 	output ecall_en,
+	output mret_en,
 
 	// 立即数
 	output [11:0] I_imm,
@@ -118,5 +119,6 @@ assign csrrc_en =  (opcode == 7'b1110011) && (funct3 == 3'b011);
 assign csrrs_en =  (opcode == 7'b1110011) && (funct3 == 3'b010);
 assign csrrw_en =  (opcode == 7'b1110011) && (funct3 == 3'b001);
 assign ecall_en =  (inst == 32'h00000073);
+assign mret_en =  (inst == 32'h30200073);
 
 endmodule

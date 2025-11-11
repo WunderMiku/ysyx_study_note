@@ -35,6 +35,7 @@ extern "C" void pmem_write(int waddr, int wdata, char wmask) {
 	}
 	if(waddr == SERIAL_PORT) {
 		putchar(wdata);
+		fflush(stdout); // 刷新输出缓冲区
 		return;
 	}
 

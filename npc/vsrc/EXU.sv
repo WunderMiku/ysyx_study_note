@@ -42,6 +42,7 @@ module EXU (
 	input csrrs_en,
 	input csrrw_en,
 	input ecall_en,
+	input mret_en,
 
 	// 数据输入
 	input  [31:0] rs1_val,
@@ -148,6 +149,7 @@ module EXU (
 										(bgeu_en & (rs1_val >= rs2_val)) ? (pc + imm) :
 										(bltu_en & (rs1_val < rs2_val)) ? (pc + imm) :
 										(ecall_en) ? (csr_rdata) :
+										(mret_en) ? (csr_rdata) :
 									  (pc + 4);
 
 
@@ -197,6 +199,7 @@ module EXU (
 		end
 	end
 
+
 	// =========== CSR信号控制 =========== 
 	assign csr_we = (csrrc_en | csrrs_en | csrrw_en | ecall_en);
 
@@ -212,6 +215,7 @@ module EXU (
 	
 	assign csr_raddr = ({12{csrrc_en | csrrs_en | csrrw_en}} & imm[11:0]) |
 		                 ({12{ecall_en}} & 12'h305) | // mtvec
+										 ({12{mret_en}} & 12'h341) |  // mepc
 	                   12'b0;
 	
 	assign csr_we1 = ecall_en;

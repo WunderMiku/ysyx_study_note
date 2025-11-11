@@ -39,6 +39,7 @@ f(30) f(31)
 
 .align 3
 .globl __am_asm_trap
+.type __am_asm_trap, @function 
 __am_asm_trap:
   addi sp, sp, -CONTEXT_SIZE
 
@@ -52,8 +53,9 @@ __am_asm_trap:
   STORE t1, OFFSET_STATUS(sp)
   STORE t2, OFFSET_EPC(sp)
 
-  mv a0, sp
+  mv a0, sp   // 把栈指针作为参数传递给 __am_irq_handle，也就是传入了上下文结构体的指针
   call __am_irq_handle
+  mv sp, a0   // 恢复栈指针到新上下文结构体的位置
 
   LOAD t1, OFFSET_STATUS(sp)
   LOAD t2, OFFSET_EPC(sp)
@@ -64,3 +66,5 @@ __am_asm_trap:
 
   addi sp, sp, CONTEXT_SIZE
   mret
+  
+.size __am_asm_trap, . - __am_asm_trap

@@ -23,7 +23,7 @@ module top (
   assign inst_valid_flag = |{add_en, addi_en, lui_en, lw_en, lbu_en, sw_en, sb_en, jalr_en, ebreak_en, auipc_en, jal_en,
                              sub_en, sltiu_en, beq_en, bne_en, sltu_en, xor_en, or_en, sh_en, srai_en, andi_en, sll_en, 
                              and_en, xori_en, bge_en, blt_en, srli_en, bgeu_en, slli_en, bltu_en, sra_en, srl_en, lh_en,
-                             lhu_en, lb_en, ori_en, slti_en, slt_en, csrrc_en, csrrs_en, csrrw_en, ecall_en};
+                             lhu_en, lb_en, ori_en, slti_en, slt_en, csrrc_en, csrrs_en, csrrw_en, ecall_en, mret_en};
 
   // =========== IFU实现 ===========
   import "DPI-C" function int pmem_read(input int raddr, input int len);
@@ -63,7 +63,7 @@ module top (
   wire add_en, addi_en, lui_en, lw_en, lbu_en, sw_en, sb_en, jalr_en, ebreak_en, auipc_en, jal_en;
   wire sub_en, sltiu_en, beq_en, bne_en, sltu_en, xor_en, or_en, sh_en, srai_en, andi_en, sll_en;
   wire and_en, xori_en, bge_en, blt_en, srli_en, bgeu_en, slli_en, bltu_en, sra_en, srl_en, lh_en;
-  wire lhu_en, lb_en, ori_en, slti_en, slt_en, csrrc_en, csrrs_en, csrrw_en, ecall_en;
+  wire lhu_en, lb_en, ori_en, slti_en, slt_en, csrrc_en, csrrs_en, csrrw_en, ecall_en, mret_en;
   wire [11:0] I_imm, S_imm;
   wire [12:0] B_imm;
   wire [31:0] U_imm;
@@ -82,7 +82,7 @@ module top (
     .blt_en(blt_en), .srli_en(srli_en), .bgeu_en(bgeu_en), .slli_en(slli_en), .bltu_en(bltu_en),
     .sra_en(sra_en), .srl_en(srl_en), .lh_en(lh_en), .lhu_en(lhu_en), .lb_en(lb_en), .ori_en(ori_en),
     .slti_en(slti_en), .slt_en(slt_en), .csrrc_en(csrrc_en), .csrrs_en(csrrs_en), .csrrw_en(csrrw_en),
-    .ecall_en(ecall_en),
+    .ecall_en(ecall_en), .mret_en(mret_en),
 
     .I_imm(I_imm),
     .S_imm(S_imm),
@@ -135,7 +135,7 @@ module top (
     .blt_en(blt_en), .srli_en(srli_en), .bgeu_en(bgeu_en), .slli_en(slli_en), .bltu_en(bltu_en),
     .sra_en(sra_en), .srl_en(srl_en), .lh_en(lh_en), .lhu_en(lhu_en), .lb_en(lb_en), .ori_en(ori_en),
     .slti_en(slti_en), .slt_en(slt_en), .csrrc_en(csrrc_en), .csrrs_en(csrrs_en), .csrrw_en(csrrw_en),
-    .ecall_en(ecall_en),
+    .ecall_en(ecall_en), .mret_en(mret_en),
 
     .rs1_val(ex_rs1_val),
     .rs2_val(ex_rs2_val),
@@ -224,6 +224,8 @@ module top (
 
   RV32_csrs uRV32_csrs (
     .clk(clk),
+    .rst(rst),
+    
     .we(csr_we),
     .waddr(csr_waddr),
     .wdata(csr_wdata),

@@ -1,5 +1,6 @@
 module RV32_csrs (
 	input clk,
+	input rst,
 
 	// csr 读写接口
 	input we,
@@ -39,21 +40,25 @@ module RV32_csrs (
 	assign out_csr[2] = mcause[31:0];
 	assign out_csr[3] = mtvec[31:0];
 
-	always @(posedge clk) begin
-		if(we) begin
-			case(waddr)
-				12'hB00: mcycle_reg <= {mcycle_reg[63:32] ,wdata};
-				12'hB80: mcycle_reg <= {wdata, mcycle_reg[31:0]};
-				12'h341: mepc <= wdata;
-				12'h300: mstatus <= wdata;
-				12'h342: mcause <= wdata;
-				12'h305: mtvec <= wdata;
-				default: begin
-					mcycle_reg <= mcycle_reg + 1;
-				end
-			endcase
+	always @(posedge clk or posedge rst) begin
+		if(rst) begin
+			mstatus <= 32'h1800;
 		end else begin
-			mcycle_reg <= mcycle_reg + 1;
+			if(we) begin
+				case(waddr)
+					12'hB00: mcycle_reg <= {mcycle_reg[63:32] ,wdata};
+					12'hB80: mcycle_reg <= {wdata, mcycle_reg[31:0]};
+					12'h341: mepc <= wdata;
+					12'h300: mstatus <= wdata;
+					12'h342: mcause <= wdata;
+					12'h305: mtvec <= wdata;
+					default: begin
+						mcycle_reg <= mcycle_reg + 1;
+					end
+				endcase
+			end else begin
+				mcycle_reg <= mcycle_reg + 1;
+			end
 		end
 
 		if(we1) begin
@@ -67,7 +72,6 @@ module RV32_csrs (
 			endcase
 		end
 	end
-
 
 	always @(*) begin
 		case(raddr)
