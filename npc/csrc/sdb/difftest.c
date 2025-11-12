@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include "reg.h"
 
-bool isa_difftest_checkregs(CpuState *ref_r, uint32_t pc);
+bool isa_difftest_checkregs(CpuState *ref_r, uint32_t pc, uint32_t before_pc);
 
 void (*ref_difftest_memcpy)(uint32_t addr, void *buf, size_t n, bool direction) = NULL;
 void (*ref_difftest_regcpy)(void *dut, bool direction) = NULL;
@@ -50,7 +50,6 @@ void init_difftest(char *ref_so_file, long img_size, int port) {
 
   // 3. 初始化参考实现
   ref_difftest_init(port);
-
   // 4. 同步初始状态：内存和寄存器
 	// for(int i = 0; i < 32; i ++) {printf("reg %d: ref 0x%08x\n", i, cpu.gpr[i]);}
   ref_difftest_memcpy(MEM_BASE, (void *)M, img_size, DIFFTEST_TO_REF);
@@ -83,7 +82,17 @@ bool isa_difftest_checkregs(CpuState *ref_r, uint32_t pc, uint32_t before_pc) {
     }
   }
 
-  // 2. 检查程序计数器(PC)
+  // 2. 检查控制状态寄存器
+  for(int i = 0; i < CSR_COUNT; i ++) {
+    if (ref_r->csr[i] != csr(i)) {
+      printf("Difftest failed at pc = 0x%08x\n", before_pc);
+      printf("csr: " COLOR_RED "%s" COLOR_NONE ": ref_value: " COLOR_GREEN "0x%08x"  COLOR_NONE ", dut_value: " COLOR_RED "0x%08x" COLOR_NONE "\n",
+          csrs[i], ref_r->csr[i], csr(i));
+      return false;
+    }
+  }
+
+  // 3. 检查程序计数器(PC)
   if(ref_r->pc != pc) {
       printf("Difftest failed at pc = 0x%08x\n", before_pc);
       printf("pc: ref 0x%08x, dut 0x%08x\n",

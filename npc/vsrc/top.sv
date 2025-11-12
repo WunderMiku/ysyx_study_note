@@ -233,7 +233,7 @@ module top (
     .raddr(csr_raddr),
     .rdata(csr_rdata),
 
-    .we1(csr_we1),
+    .we1_in(csr_we1),
     .waddr1(csr_waddr1),
     .wdata1(csr_wdata1),
     .out_csr(out_csr)

@@ -33,7 +33,6 @@ const char *csrs_name[CSR_COUNT] = {
   "mepc", "mstatus", "mcause", "mtvec"
 };
 
-
 const uint32_t csrs_addr[CSR_COUNT] = {
   CSR_ADDR_MEPC, CSR_ADDR_MSTATUS, CSR_ADDR_MCAUSE, CSR_ADDR_MTVEC
 };

@@ -222,4 +222,7 @@ void update_cpuState() {
 	for(int i = 0; i < RISCV_GPR_NUM; i++) {
 		cpu.gpr[i] = gpr(i);
 	}
+	for(int i = 0; i < CSR_COUNT; i++) {
+		cpu.csr[i] = csr(i);
+	}
 }

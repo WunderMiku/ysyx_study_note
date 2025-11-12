@@ -148,7 +148,7 @@ module EXU (
 										(blt_en & ($signed(rs1_val) < $signed(rs2_val))) ? (pc + imm) :
 										(bgeu_en & (rs1_val >= rs2_val)) ? (pc + imm) :
 										(bltu_en & (rs1_val < rs2_val)) ? (pc + imm) :
-										(ecall_en) ? (csr_rdata) :
+									  (ecall_en) ? (csr_rdata) :
 										(mret_en) ? (csr_rdata) :
 									  (pc + 4);
 

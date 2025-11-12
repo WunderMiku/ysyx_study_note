@@ -18,6 +18,7 @@ enum {
  */
 typedef struct {
   uint32_t gpr[RISCV_GPR_NUM];  /* 通用寄存器 */
+  uint32_t csr[CSR_COUNT];      /* 控制状态寄存器 */
   uint32_t pc;                  /* 程序计数器 */
 } diff_context_t;
 

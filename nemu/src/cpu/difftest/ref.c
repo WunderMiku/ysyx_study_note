@@ -16,6 +16,7 @@
 #include <SDL2/SDL_keycode.h>
 #include <isa.h>
 #include <cpu/cpu.h>
+#include "../../isa/riscv32/local-include/reg.h"
 #include <difftest-def.h>
 #include <memory/paddr.h>
 #include <stdint.h>
@@ -33,17 +34,23 @@ __EXPORT void difftest_regcpy(void *dut, bool direction) {
   diff_context_t *dut_context = (diff_context_t *)dut;
   if(direction == DIFFTEST_TO_REF) {
     for(int i = 0; i < RISCV_GPR_NUM; i++) {
-      // dut_context->gpr[i] = cpu.gpr[i];
       cpu.gpr[i] = dut_context->gpr[i];
     }
+
+    for(int i = 0; i < CSR_COUNT; i++) {
+      csr(i) = dut_context->csr[i];
+    }
+    
     cpu.pc = dut_context->pc;
-    // dut_context->pc = cpu.pc;
-  } else {
+  } else {  // DIFFTEST_TO_DUT
     for(int i = 0; i < RISCV_GPR_NUM; i++) {
-      // cpu.gpr[i] = dut_context->gpr[i];
       dut_context->gpr[i] = cpu.gpr[i];
     }
-    // cpu.pc = dut_context->pc;
+
+    for(int i = 0; i < CSR_COUNT; i++) {
+      dut_context->csr[i] = csr(i);
+    }
+
     dut_context->pc = cpu.pc;
   }
 }

@@ -17,6 +17,7 @@
 #define __DIFFTEST_DEF_H__
 
 #include "common.h"
+#include "isa-def.h"
 #include <stdint.h>
 #include <macro.h>
 #include <generated/autoconf.h>
@@ -32,12 +33,11 @@ enum {
 
 /*
  * difftest寄存器上下文结构
- * 用于在NEMU和Spike之间传输寄存器状态
  */
 typedef struct {
   word_t gpr[MUXDEF(CONFIG_RVE, 16, 32)];  /* 通用寄存器 */
+  word_t csr[CSR_COUNT];                   /* 控制寄存器 */        
   word_t pc;                               /* 程序计数器 */
-  word_t csr[4];
 } diff_context_t;
 
 /* 不同ISA架构的寄存器大小定义 */
