@@ -1,4 +1,4 @@
-module EXU (
+module ysyx_25090244_EXU (
 	// 指令使能信号（form IDU)
 	input add_en,
 	input addi_en,

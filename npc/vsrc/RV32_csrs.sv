@@ -1,4 +1,4 @@
-module RV32_csrs (
+module ysyx_25090244_RV32_csrs (
 	input clk,
 	input rst,
 

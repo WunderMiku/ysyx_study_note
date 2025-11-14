@@ -1,4 +1,4 @@
-module IDU (
+module ysyx_25090244_IDU (
 	input [31:0] inst,
 	output [4:0] rs1_addr,
 	output [4:0] rs2_addr,

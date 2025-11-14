@@ -1,4 +1,4 @@
-module WBU (
+module ysyx_25090244_WBU (
 	// EXU 输入
 	input  [31:0] next_pc_EX,
 	input         reg_we_EX,

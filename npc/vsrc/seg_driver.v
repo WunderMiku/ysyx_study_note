@@ -1,4 +1,4 @@
-module seg_driver (
+module ysyx_25090244_seg_driver (
   input [3:0] num,
   input EN,
   input clk,

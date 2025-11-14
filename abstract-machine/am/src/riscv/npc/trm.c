@@ -39,7 +39,7 @@ static inline void print_msg(void) {
 }
 
 void _trm_init() {
-  // print_msg(); // For difftest: OFF need
+  // print_msg(); // For difftest: OFF needed
   int ret = main(mainargs);
   halt(ret);
 }

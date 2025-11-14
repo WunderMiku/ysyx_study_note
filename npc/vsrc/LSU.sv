@@ -1,4 +1,4 @@
-module LSU ( 
+module ysyx_25090244_LSU ( 
 	// 写端口控制信号
 	input  ram_we_EX,
 	input  [31:0] ram_write_data_EX,

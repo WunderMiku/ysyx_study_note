@@ -10,7 +10,7 @@ Context* __am_irq_handle(Context *c) {
     switch (c->mcause) {
       case 0xb: 
               ev.event = EVENT_YIELD; 
-              c->mepc += 4; // 这里或是测试程序里面+4即可，均属于软件处理
+              c->mepc += 4; // 需要继续运行
               break;
       default: ev.event = EVENT_ERROR; break;
     }

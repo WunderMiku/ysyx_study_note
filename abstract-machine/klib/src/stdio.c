@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 #if !defined(__ISA_NATIVE__) || defined(__NATIVE_USE_KLIB__)
-#define WIDTH_BUF_SIZE 16
+#define WIDTH_BUF_SIZE 25
 
 typedef enum {
   DEC = 0,
@@ -15,11 +15,11 @@ typedef enum {
 } BASE;
 
 typedef union {
-  unsigned int u;
-  int i;
+  unsigned long long ull;
+  long long ll;
 } number_t;
-#define FMT_SIGNED(x)  ((number_t){.i = (x)})
-#define FMT_UNSIGNED(x) ((number_t){.u = (x)})
+#define FMT_SIGNED(x)  ((number_t){.ll = (x)})
+#define FMT_UNSIGNED(x) ((number_t){.ull = (x)})
 
 // 获取字符串表示的整数,返回int值
 static int stoi(char *s, BASE base) {
@@ -76,7 +76,9 @@ static int stoi(char *s, BASE base) {
 
 // 在out开始追加无符号d的字符串表示，并添加结束符 \0
 // 函数返回添加的数字字符数（不包括 \0）
-static int itous(unsigned int ud, char *out, BASE base) {
+
+// 添加ll支持
+static int ulltos(unsigned long long ull, char *out, BASE base) {
   panic_on(out == NULL, "Output buffer is NULL!");
 
   int ret = 0;
@@ -85,21 +87,21 @@ static int itous(unsigned int ud, char *out, BASE base) {
   base_num = (base == DEC) ? 10 : (base == HEX_little || base == HEX_big) ? 16 : (base == OCT) ? 8 : -1;
   panic_on(base_num == -1, "Unsupported base!");
 
-  if(ud == 0) {
+  if(ull == 0) {
     *out++ = '0';
     ret++;
     return ret;
   } 
   
   int i = 0;
-  while(ud) {
-    int rem = ud % base_num;
+  while(ull) {
+    int rem = ull % base_num;
     if(rem < 10) {
       buf[i++] = rem + '0';
     } else {
       buf[i++] = (base == HEX_little ? (rem - 10 + 'a') : (rem - 10 + 'A'));
     }
-    ud /= base_num;
+    ull /= base_num;
     assert(i < WIDTH_BUF_SIZE);
   }
   while(i--) {
@@ -112,31 +114,33 @@ static int itous(unsigned int ud, char *out, BASE base) {
 
 // 在out开始追加有符号d的字符串表示，并添加结束符 \0
 // 返回添加的字符数（不包括 \0）
-static int itos(int d, char *out, BASE base) {
+
+// 添加ll支持
+static int lltos(long long ll, char *out, BASE base) {
   panic_on(out == NULL, "Output buffer is NULL!");
   panic_on(base != DEC, "Use wrong function to print non-decimal int!");
 
   int ret = 0;
-  unsigned int ud;
+  unsigned long long ull;
   int base_num;
   base_num = (base == DEC) ? 10 : (base == HEX_little || base == HEX_big) ? 16 : (base == OCT) ? 8 : -1;
   panic_on(base_num == -1, "Unsupported base!");
 
-  if(d == 0) {
+  if(ll == 0) {
     *out++ = '0';
     ret++;
     return ret;
   } 
   
-  if(d < 0) {
+  if(ll < 0) {
     *out++ = '-';
     ret++;
-    ud = -d; // 避免INT_MIN的问题（int不能表示-INT_MIN）
+    ull = -ll; // 避免最小负数的情况
   } else {
-    ud = d;
+    ull = ll;
   }
   
-  ret += itous(ud, out, base);  // 复用无符号整数的函数
+  ret += ulltos(ull, out, base);  // 复用无符号整数的函数
 
   return ret;
 }
@@ -148,8 +152,8 @@ static int fmt_print(number_t num, char *out, BASE base, bool filled_zeros, int 
   int ret = 0;
   char buf[WIDTH_BUF_SIZE];
   int offest;
-  if(signed_int) {offest = itos(num.i, buf, base);}
-  else {offest = itous(num.u, buf, base);}
+  if(signed_int) {offest = lltos(num.ll, buf, base);}
+  else {offest = ulltos(num.ull, buf, base);}
   
   int append_int = width - offest;
   while(append_int > 0) {
@@ -174,9 +178,12 @@ int vsprintf(char *out, const char *fmt, va_list ap) {
   panic_on(out == NULL, "Output buffer is NULL!");
   panic_on(fmt == NULL, "Format string is NULL!");
 
-  int d, ret = 0;
+  int ret = 0;
+  long long lld;
+  unsigned long long ulld;
   char *s;
   bool filled_zeros = false;
+
   int width = 0;
   char width_buf[WIDTH_BUF_SIZE] = "";
 
@@ -210,14 +217,35 @@ int vsprintf(char *out, const char *fmt, va_list ap) {
     width_i = 0;
     assert(width >= 0);
 
+    // 格式长度 处理
+    bool long_flag = false;
+    bool long_long_flag = false;
+    if(*fmt == 'l') {
+      fmt++;
+      if(*fmt == 'l') {
+        long_long_flag = true;
+        fmt++;
+      } else {
+        long_flag = true;
+      }
+    }
+
     int offest;
     switch(*fmt++) {
       case 'd':
-        d = va_arg(ap, int);
-
-        offest = fmt_print(FMT_SIGNED(d), out, DEC, filled_zeros, width, true);
+        if(long_flag) {
+          lld = (long long)va_arg(ap, long);
+        } else if(long_long_flag) {
+          lld = va_arg(ap, long long);
+        } else {
+          lld = (long long)va_arg(ap, int);
+        }
+        offest = fmt_print(FMT_SIGNED(lld), out, DEC, filled_zeros, width, true);
         out += offest;
         ret += offest;
+
+        long_flag = false;
+        long_long_flag = false;
 
         filled_zeros = false;
         width = 0;
@@ -225,11 +253,20 @@ int vsprintf(char *out, const char *fmt, va_list ap) {
         break;
 
       case 'u':
-        d = va_arg(ap, unsigned int);
+        if(long_flag) {
+          ulld = (unsigned long long)va_arg(ap, unsigned long);
+        } else if(long_long_flag) {
+          ulld = va_arg(ap, unsigned long long);
+        } else {
+          ulld = (unsigned long long)va_arg(ap, unsigned int);
+        }
 
-        offest = fmt_print(FMT_UNSIGNED(d), out, DEC, filled_zeros, width, false);
+        offest = fmt_print(FMT_UNSIGNED(ulld), out, DEC, filled_zeros, width, false);
         out += offest;
         ret += offest;
+
+        long_flag = false;
+        long_long_flag = false;
 
         filled_zeros = false;
         width = 0;
@@ -237,11 +274,20 @@ int vsprintf(char *out, const char *fmt, va_list ap) {
         break;
       
       case 'x':
-        d = va_arg(ap, unsigned int);
+        if(long_flag) {
+          ulld = (unsigned long long)va_arg(ap, unsigned long);
+        } else if(long_long_flag) {
+          ulld = va_arg(ap, unsigned long long);
+        } else {
+          ulld = (unsigned long long)va_arg(ap, unsigned int);
+        }
 
-        offest = fmt_print(FMT_UNSIGNED(d), out, HEX_little, filled_zeros, width, false);
+        offest = fmt_print(FMT_UNSIGNED(ulld), out, HEX_little, filled_zeros, width, false);
         out += offest;
         ret += offest;
+
+        long_flag = false;
+        long_long_flag = false;
 
         filled_zeros = false;
         width = 0;
@@ -249,11 +295,20 @@ int vsprintf(char *out, const char *fmt, va_list ap) {
         break;
       
       case 'X':
-        d = va_arg(ap, unsigned int);
+        if(long_flag) {
+          ulld = (unsigned long long)va_arg(ap, unsigned long);
+        } else if(long_long_flag) {
+          ulld = va_arg(ap, unsigned long long);
+        } else {
+          ulld = (unsigned long long)va_arg(ap, unsigned int);
+        }
 
-        offest = fmt_print(FMT_UNSIGNED(d), out, HEX_big, filled_zeros, width, false);
+        offest = fmt_print(FMT_UNSIGNED(ulld), out, HEX_big, filled_zeros, width, false);
         out += offest;
         ret += offest;
+
+        long_flag = false;
+        long_long_flag = false;
         
         filled_zeros = false;
         width = 0;
@@ -293,7 +348,7 @@ int vsprintf(char *out, const char *fmt, va_list ap) {
         break;
 
       default:
-      printf("Unsupported format string: %c\n", *fmt);
+      printf("Unsupported format string: %c\n", *(fmt - 1));
       // assert(0);
       *out = 0;
       return ret;

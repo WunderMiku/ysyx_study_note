@@ -1,8 +1,8 @@
-#include "Vtop.h"
+#include "Vysyx_25090244_top.h"
 #include <bits/posix2_lim.h>
 #include <cassert>
 #include <cstdint>
-#include <nvboard.h>
+// #include <nvboard.h>
 #include "config.h"
 #include "funget.h"
 #include "ringbuf.h"
@@ -28,10 +28,11 @@ vluint64_t simTime = 0;
 vluint32_t* M = nullptr;
 int instNum = 0;
 uint32_t fileSize;
+bool BatchMode = false;
 char NEMU_SO_PATH[128] = "/home/misuzu/ysyx-workbench/nemu/build/riscv32-nemu-interpreter-so";
 
-static void singleCycle(Vtop*);
-static void reset(Vtop*);
+static void singleCycle(Vysyx_25090244_top*);
+static void reset(Vysyx_25090244_top*);
 static void execOnce();
 static int checkEbreak();
 static bool checkInstVaild();
@@ -42,7 +43,7 @@ void update_cpuState();
 int get_random(int n);
 
 std::unique_ptr<VerilatedContext> contextp{new VerilatedContext};
-std::unique_ptr<Vtop> dut{new Vtop{contextp.get(), "TOP"}};
+std::unique_ptr<Vysyx_25090244_top> dut{new Vysyx_25090244_top{contextp.get(), "TOP"}};
 
 VerilatedFstC* tfp = new VerilatedFstC;
 NpcState npcState;
@@ -50,6 +51,9 @@ CpuState cpu;
 
 int main(int argc, char** argv) {
 	fileSize = loadFile(argc, argv);
+
+	// batch mode check
+	BatchMode = (argc > 3 && (strcmp(argv[3], "--batch") == 0));
 	
 	verilatorInit(tfp, contextp.get(), dut.get(), argc, argv);
 	reset(dut.get());
@@ -59,14 +63,15 @@ int main(int argc, char** argv) {
 	npcState.state = NPC_RUNNING;
 	sim_init(argc, argv);
 
-#ifdef BATMODE // 批处理模式
-	cpuExec(-1);
-#else
-	while(1){
-		sdbMainLoop();
-		if(npcState.state != NPC_RUNNING) break;
+	if(BatchMode) { 
+		printf("[BATMODE] Running...\n");
+		cpuExec(-1);
+	} else {
+		while(1){
+			sdbMainLoop();
+			if(npcState.state != NPC_RUNNING) break;
+		}
 	}
-#endif
 
 	dut->final();
 	tfp->close();
@@ -78,14 +83,14 @@ int main(int argc, char** argv) {
 	}
 }
 
-static void singleCycle(Vtop* dut) {
+static void singleCycle(Vysyx_25090244_top* dut) {
   dut->clk = 1; dut->eval();
   dut->clk = 0; dut->eval();
 	contextp->timeInc(1);
 	tfp->dump(contextp->time());
 }
 
-static void reset(Vtop *dut) {
+static void reset(Vysyx_25090244_top *dut) {
 	dut->rst = 1; dut->clk = 0; dut->eval();
 	singleCycle(dut);
 	dut->rst = 0;	dut->eval();
@@ -136,8 +141,7 @@ static void execOnce() {
 	if(checkEbreak()) return; // 检测 ebreak 指令
 	if(!checkInstVaild()) return; // 检测 非法/未实现 指令
 
-	// ================ 控制信号更新完成，步进以执行该周期指令 ===============
-	// 电路步进
+	// 执行指令
 	singleCycle(dut.get());
 	
 	return;

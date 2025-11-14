@@ -1,12 +1,15 @@
-TOPNAME = top
+TOPNAME = ysyx_25090244_top
 NXDC_FILES = constr/top.nxdc
 INC_PATH ?= $(NPC_HOME)/include
 SIM_ARGS ?= ./resource/default.bin
 ELF_PATH ?= $(NPC_HOME)/resource/default.elf
 BATMODE  ?= false
 
+# rules for batch mode
 ifeq ($(BATMODE), true)
-CXXFLAGS += -DBATMODE
+override SIM_ARGS += --batch
+else
+override SIM_ARGS += --no-batch
 endif
 
 ifeq ($(VERILATOR_ROOT),)
@@ -35,23 +38,30 @@ CSRCS = $(shell find $(abspath ./csrc) -name "*.c" -or -name "*.cc" -or -name "*
 INC_PATH += $(shell find $(NPC_HOME)/include -type d)
 VSRCS := $(wildcard vsrc/*.v) $(wildcard vsrc/*.sv)
 
+# additional libraries
 LDFLAGS += -lreadline
-#CSRCS += $(SRC_AUTO_BIND) // 暂时禁用自动绑定
 
-# rules for NVBoard
-include $(NVBOARD_HOME)/scripts/nvboard.mk
-
-# rules for capstone
 LIBCAPSTONE = $(NPC_HOME)/tools/capstone/repo/libcapstone.so.5
 INC_PATH += $(NPC_HOME)/tools/capstone/repo/include
 csrc/utils/disasm.c: $(LIBCAPSTONE)
 $(LIBCAPSTONE):
 	$(MAKE) -C tools/capstone
 
+# rules for NVBoard
+# CSRCS += $(SRC_AUTO_BIND)
+# include $(NVBOARD_HOME)/scripts/nvboard.mk
+
 # rules for verilator
 INCFLAGS = $(addprefix -I, $(INC_PATH))
 CXXFLAGS += $(INCFLAGS) -DTOP_NAME="\"V$(TOPNAME)\""
 
+# rules for dependent .h files
+HSRCS = $(shell find $(abspath ./include) -name "*.h")
+$(CSRCS): $(HSRCS)
+# update timestamp to force recompile
+	@touch $@ 
+
+# build rules
 $(BIN): $(VSRCS) $(CSRCS) $(NVBOARD_ARCHIVE)
 	@rm -rf $(OBJ_DIR)
 	@echo "-- Running Verilator --"
@@ -75,5 +85,5 @@ clean:
 
 .PHONY: all sim clean
 
-include ../Makefile
+
 

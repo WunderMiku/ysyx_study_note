@@ -1,4 +1,4 @@
-module RV32_regs (
+module ysyx_25090244_RV32_regs (
 	input clk,
 
 	// 写端口

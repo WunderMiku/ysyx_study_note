@@ -1,4 +1,4 @@
-module top (
+module ysyx_25090244_top (
   input clk,
   input rst,
   output [31:0] A0,
@@ -68,7 +68,7 @@ module top (
   wire [12:0] B_imm;
   wire [31:0] U_imm;
   wire [20:0] J_imm;
-  IDU uIDU (
+  ysyx_25090244_IDU uIDU (
     .inst(inst),
     .rs1_addr(rs1_addr),
     .rs2_addr(rs2_addr),
@@ -126,7 +126,7 @@ module top (
   assign ex_rs1_val = reg_addr1_val;
   assign ex_rs2_val = reg_addr2_val;
 
-  EXU uEXU (
+  ysyx_25090244_EXU uEXU (
     .add_en(add_en), .addi_en(addi_en), .lui_en(lui_en), .lw_en(lw_en), .lbu_en(lbu_en),
     .sw_en(sw_en), .sb_en(sb_en), .jalr_en(jalr_en), .ebreak_en(ebreak_en), .auipc_en(auipc_en),
     .jal_en(jal_en), .sub_en(sub_en), .sltiu_en(sltiu_en), .beq_en(beq_en), .bne_en(bne_en),
@@ -189,7 +189,7 @@ module top (
   assign reg_read_addr1 = rs1_addr;
   assign reg_read_addr2 = rs2_addr;
   
-  RV32_regs uRV32_regs (
+  ysyx_25090244_RV32_regs uRV32_regs (
     .clk(clk),
     .write_ena(reg_write_ena),
     .write_addr(reg_write_addr),
@@ -222,7 +222,7 @@ module top (
   assign csr_wdata1 = wb_csr_wdata1;
   assign csr_waddr1 = wb_csr_waddr1;
 
-  RV32_csrs uRV32_csrs (
+  ysyx_25090244_RV32_csrs uRV32_csrs (
     .clk(clk),
     .rst(rst),
     
@@ -253,7 +253,7 @@ module top (
   wire [11:0] wb_csr_waddr1;
   wire [31:0] wb_csr_wdata1;
 
-  WBU uWBU (
+  ysyx_25090244_WBU uWBU (
     .next_pc_EX(ex_next_pc),
     .reg_we_EX(ex_reg_we),
     .reg_addr_EX(ex_reg_addr),
@@ -294,7 +294,7 @@ module top (
   wire ls_ram_re;
   wire [31:0] ls_ram_read_addr;
 
-  LSU uLSU (
+  ysyx_25090244_LSU uLSU (
     .ram_we_EX(ex_ram_we),
     .ram_write_addr_EX(ex_ram_write_addr),
     .ram_write_data_EX(ex_ram_write_data),
