@@ -21,6 +21,14 @@ typedef union {
 #define FMT_SIGNED(x)  ((number_t){.ll = (x)})
 #define FMT_UNSIGNED(x) ((number_t){.ull = (x)})
 
+#define reset_flags() do { \
+  filled_zeros = false; \
+  width = 0; \
+  width_buf[0] = 0; \
+  long_flag = false; \
+  long_long_flag = false; \
+} while(0)
+
 // 获取字符串表示的整数,返回int值
 static int stoi(char *s, BASE base) {
   panic_on(s == NULL, "Input string is NULL!");
@@ -244,12 +252,7 @@ int vsprintf(char *out, const char *fmt, va_list ap) {
         out += offest;
         ret += offest;
 
-        long_flag = false;
-        long_long_flag = false;
-
-        filled_zeros = false;
-        width = 0;
-        width_buf[0] = 0;
+        reset_flags();
         break;
 
       case 'u':
@@ -265,12 +268,7 @@ int vsprintf(char *out, const char *fmt, va_list ap) {
         out += offest;
         ret += offest;
 
-        long_flag = false;
-        long_long_flag = false;
-
-        filled_zeros = false;
-        width = 0;
-        width_buf[0] = 0;
+        reset_flags();
         break;
       
       case 'x':
@@ -286,12 +284,7 @@ int vsprintf(char *out, const char *fmt, va_list ap) {
         out += offest;
         ret += offest;
 
-        long_flag = false;
-        long_long_flag = false;
-
-        filled_zeros = false;
-        width = 0;
-        width_buf[0] = 0;
+        reset_flags();
         break;
       
       case 'X':
@@ -307,12 +300,7 @@ int vsprintf(char *out, const char *fmt, va_list ap) {
         out += offest;
         ret += offest;
 
-        long_flag = false;
-        long_long_flag = false;
-        
-        filled_zeros = false;
-        width = 0;
-        width_buf[0] = 0;
+        reset_flags();
         break;
 
       case 's':
@@ -332,6 +320,7 @@ int vsprintf(char *out, const char *fmt, va_list ap) {
           ret++;
         };
         out--, ret--;  // delete the last '\0'
+        reset_flags();
         break;
         
       case 'c':
@@ -340,11 +329,13 @@ int vsprintf(char *out, const char *fmt, va_list ap) {
         filled_zeros = false;
         width = 0;
         width_buf[0] = 0;
+        reset_flags();
         break;
         
       case '%':
         *out++ = '%';
         ret++;
+        reset_flags();
         break;
 
       default:
