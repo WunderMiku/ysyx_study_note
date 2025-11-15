@@ -247,23 +247,13 @@ void parse_symbol_table(const void *addr) {
 
 	for(int j = 0; j < sym_num; j++) {
 		const Elf32_Sym *sym = (const Elf32_Sym *)(sym_base + j * sizeof(Elf32_Sym));
-		if(ELF32_ST_TYPE(sym->st_info) != STT_FUNC) continue; // 优先处理函数类型符号
-		printf("Symbol %d at: %p\n", j, sym);
-		printf("Name: %s\n", (char *)(strtab_base + sym->st_name));
-		printf("Value: %x\n", sym->st_value);
-		printf("Size: %x\n", sym->st_size);
+		if(ELF32_ST_TYPE(sym->st_info) != STT_FUNC) continue; // 仅处理函数类型符号
+		// printf("Symbol %d at: %p\n", j, sym);
+		// printf("Name: %s\n", (char *)(strtab_base + sym->st_name));
+		// printf("Value: %x\n", sym->st_value);
+		// printf("Size: %x\n", sym->st_size);
 		funget_set_function((char *)(strtab_base + sym->st_name), sym->st_value, sym->st_size);
 	}	
-	// printf("=============================\n");
-	// for(int j = 0; j < sym_num; j++) {
-	// 	const Elf32_Sym *sym = (const Elf32_Sym *)(sym_base + j * sizeof(Elf32_Sym));
-	// 	if(ELF32_ST_TYPE(sym->st_info) != STT_NOTYPE) continue; // 而后处理无类型符号
-	// 	printf("Symbol %d at: %p\n", j, sym);
-	// 	printf("Name: %s\n", (char *)(strtab_base + sym->st_name));
-	// 	printf("Value: %x\n", sym->st_value);
-	// 	printf("Size: %x\n", sym->st_size);
-	// 	funget_set_function((char *)(strtab_base + sym->st_name), sym->st_value, sym->st_size);
-	// }	
 }
 
 // 输出elf节头表
