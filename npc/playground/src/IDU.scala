@@ -4,64 +4,10 @@ import chisel3._
 import chisel3.util.switch
 import chisel3.util.is
 
-class InstEnable extends Bundle {
-  val add    = Bool()
-  val addi   = Bool()
-  val lui    = Bool()
-  val lw     = Bool()
-  val lbu    = Bool()
-  val sw     = Bool()
-  val sb     = Bool()
-  val jalr   = Bool()
-  val ebreak = Bool()
-  val auipc  = Bool()
-  val jal    = Bool()
-  val sub    = Bool()
-  val sltiu  = Bool()
-  val beq    = Bool()
-  val bne    = Bool()
-  val sltu   = Bool()
-  val xor    = Bool()
-  val or     = Bool()
-  val sh     = Bool()
-  val srai   = Bool()
-  val andi   = Bool()
-  val sll    = Bool()
-  val and    = Bool()
-  val xori   = Bool()
-  val bge    = Bool()
-  val blt    = Bool()
-  val srli   = Bool()
-  val bgeu   = Bool()
-  val slli   = Bool()
-  val bltu   = Bool()
-  val sra    = Bool()
-  val srl    = Bool()
-  val lh     = Bool()
-  val lhu    = Bool()
-  val lb     = Bool()
-  val ori    = Bool()
-  val slti   = Bool()
-  val slt    = Bool()
-  val csrrc  = Bool()
-  val csrrs  = Bool()
-  val csrrw  = Bool()
-  val ecall  = Bool()
-  val mret   = Bool()
-}
-
-class InstDecode extends Bundle {
-  val opcode = UInt(7.W)
-  val rd     = UInt(5.W)
-  val rs1    = UInt(5.W)
-  val rs2    = UInt(5.W)
-  val funct3 = UInt(3.W)
-  val funct7 = UInt(7.W)
-}
+import inst.{InstDecode, InstType}
 
 class InstDecodeUnit extends Module {
   val io = IO(new Bundle {
-    val instEnable = Output(new InstEnable)
     val inst     = Input(UInt(32.W))
   })
 
@@ -73,102 +19,159 @@ class InstDecodeUnit extends Module {
   instDecode.rs2    := io.inst(24, 20)
   instDecode.funct7 := io.inst(31, 25)
 
-  val instEnable = Wire(new InstEnable)
-
-  instEnable := 0.U.asTypeOf(new InstEnable) // 先清零
+  val instType = Wire(InstType())
+  instType := InstType.NULL  // 默认NULL
 
   switch(instDecode.opcode) {
     // =================== R-type ===================
     is("b0110011".U) {
       switch(instDecode.funct3) {
         is(0.U) { // add/sub
-          when(instDecode.funct7 === 0.U) { instEnable.add := true.B }
-          .elsewhen(instDecode.funct7 === "b0100000".U) { instEnable.sub := true.B }
+          when(instDecode.funct7 === 0.U) { instType := InstType.ADD }
+          .elsewhen(instDecode.funct7 === "b0100000".U) { instType := InstType.SUB }
         }
-        is(1.U) { instEnable.sll := true.B }
-        is(2.U) { instEnable.slt := true.B }
-        is(3.U) { instEnable.sltu := true.B }
-        is(4.U) { instEnable.xor := true.B }
+        is(1.U) { instType := InstType.SLL }
+        is(2.U) { instType := InstType.SLT }
+        is(3.U) { instType := InstType.SLTU }
+        is(4.U) { instType := InstType.XOR }
         is(5.U) {
-          when(instDecode.funct7 === 0.U) { instEnable.srl := true.B }
-          .elsewhen(instDecode.funct7 === "b0100000".U) { instEnable.sra := true.B }
+          when(instDecode.funct7 === 0.U) { instType := InstType.SRL }
+          .elsewhen(instDecode.funct7 === "b0100000".U) { instType := InstType.SRA }
         }
-        is(6.U) { instEnable.or := true.B }
-        is(7.U) { instEnable.and := true.B }
+        is(6.U) { instType := InstType.OR }
+        is(7.U) { instType := InstType.AND }
       }
     }
 
     // =================== I-type ===================
     is("b0010011".U) {
       switch(instDecode.funct3) {
-        is(0.U) { instEnable.addi := true.B }
-        is(1.U) { instEnable.slli := true.B }
-        is(2.U) { instEnable.slti := true.B }
-        is(3.U) { instEnable.sltiu := true.B }
-        is(4.U) { instEnable.xori := true.B }
+        is(0.U) { instType := InstType.ADDI }
+        is(1.U) { instType := InstType.SLLI }
+        is(2.U) { instType := InstType.SLTI }
+        is(3.U) { instType := InstType.SLTU }
+        is(4.U) { instType := InstType.XORI }
         is(5.U) {
-          when(instDecode.funct7 === 0.U) { instEnable.srli := true.B }
-          .elsewhen(instDecode.funct7 === "b0100000".U) { instEnable.srai := true.B }
+          when(instDecode.funct7 === 0.U) { instType := InstType.SRLI }
+          .elsewhen(instDecode.funct7 === "b0100000".U) { instType := InstType.SRAI }
         }
-        is(6.U) { instEnable.ori := true.B }
-        is(7.U) { instEnable.andi := true.B }
+        is(6.U) { instType := InstType.ORI }
+        is(7.U) { instType := InstType.ANDI }
       }
     }
 
     is("b0000011".U) {
       switch(instDecode.funct3) {
-        is(0.U) { instEnable.lb := true.B }
-        is(1.U) { instEnable.lh := true.B }
-        is(2.U) { instEnable.lw := true.B }
-        is(4.U) { instEnable.lbu := true.B }
-        is(5.U) { instEnable.lhu := true.B }
+        is(0.U) { instType := InstType.LB }
+        is(1.U) { instType := InstType.LH }
+        is(2.U) { instType := InstType.LW }
+        is(4.U) { instType := InstType.LBU }
+        is(5.U) { instType := InstType.LHU }
       }
     }
 
     // =================== S-type ===================
     is("b0100011".U) {
       switch(instDecode.funct3) {
-        is(0.U) { instEnable.sb := true.B }
-        is(1.U) { instEnable.sh := true.B }
-        is(2.U) { instEnable.sw := true.B }
+        is(0.U) { instType := InstType.SB }
+        is(1.U) { instType := InstType.SH }
+        is(2.U) { instType := InstType.SW }
       }
     }
 
     // =================== B-type ===================
     is("b1100011".U) {
       switch(instDecode.funct3) {
-        is(0.U) { instEnable.beq := true.B }
-        is(1.U) { instEnable.bne := true.B }
-        is(4.U) { instEnable.blt := true.B }
-        is(5.U) { instEnable.bge := true.B }
-        is(6.U) { instEnable.bltu := true.B }
-        is(7.U) { instEnable.bgeu := true.B }
+        is(0.U) { instType := InstType.BEQ }
+        is(1.U) { instType := InstType.BNE }
+        is(4.U) { instType := InstType.BLT }
+        is(5.U) { instType := InstType.BGE }
+        is(6.U) { instType := InstType.BLTU }
+        is(7.U) { instType := InstType.BGEU }
       }
     }
 
     // =================== U-type ===================
-    is("b0110111".U) { instEnable.lui := true.B }
-    is("b0010111".U) { instEnable.auipc := true.B }
+    is("b0110111".U) { instType := InstType.LUI }
+    is("b0010111".U) { instType := InstType.AUIPC }
 
     // =================== J-type ===================
-    is("b1101111".U) { instEnable.jal := true.B }
+    is("b1101111".U) { instType := InstType.JAL }
     is("b1100111".U) {
-      when(instDecode.funct3 === 0.U) { instEnable.jalr := true.B }
+      when(instDecode.funct3 === 0.U) { instType := InstType.JALR }
     }
 
     // =================== CSR / 系统 ===================
     is("b1110011".U) {
       switch(instDecode.funct3) {
-        is(1.U) { instEnable.csrrw := true.B }
-        is(2.U) { instEnable.csrrs := true.B }
-        is(3.U) { instEnable.csrrc := true.B }
+        is(1.U) { instType := InstType.CSRRW }
+        is(2.U) { instType := InstType.CSRRS }
+        is(3.U) { instType := InstType.CSRRC }
       }
-      when(instDecode.asUInt === "h00000073".U) { instEnable.ecall := true.B }
-      when(instDecode.asUInt === "h00100073".U) { instEnable.ebreak := true.B }
-      when(instDecode.asUInt === "h30200073".U) { instEnable.mret := true.B }
+      when(instDecode.asUInt === "h00000073".U) { instType := InstType.ECALL }
+      when(instDecode.asUInt === "h00100073".U) { instType := InstType.EBREAK }
+      when(instDecode.asUInt === "h30200073".U) { instType := InstType.MRET }
     }
   }
-  io.instEnable := instEnable
-}
 
+  // 不支持的指令检测 (暂不使用)
+  // assert(instType =/= InstType.NULL, "Unsupported instruction detected in IDU!")
+
+  // ===== EXU 控制信号生成 =====
+  val exuCtrl = Wire(new exu.EXUCtrl)
+
+  exuCtrl.writeBack := instType.isOneOf(
+    InstType.ADD,
+    InstType.ADDI,
+    InstType.JALR,
+    InstType.LUI,
+    InstType.LBU,
+    InstType.LW,
+    InstType.AUIPC,
+    InstType.JAL,
+    InstType.SUB,
+    InstType.SLTIU,
+    InstType.SLTU,
+    InstType.XOR,
+    InstType.OR,
+    InstType.SRAI,
+    InstType.ANDI,
+    InstType.SLL,
+    InstType.AND,
+    InstType.XORI,
+    InstType.SRLI,
+    InstType.SLLI,
+    InstType.SRA,
+    InstType.SRL,
+    InstType.LH,
+    InstType.LHU,
+    InstType.LB,
+    InstType.ORI,
+    InstType.SLTI,
+    InstType.SLT,
+    InstType.CSRRC,
+    InstType.CSRRS,
+    InstType.CSRRW
+  ) && (instDecode.rd =/= 0.U)
+
+  // TODO ALU 操作类型生成
+  // when(instType.isOneOf(InstType.ADD, InstType.ADDI, InstType.JALR, InstType.AUIPC, InstType.JAL,
+  //  InstType.BEQ, InstType.BNE, InstType.BGE, InstType.BLT, InstType.BLTU, InstType.BGEU, InstType.SB,
+  //   InstType.SW, InstType.SH, InstType.LH, InstType.LBU, InstType.LW, InstType.LH, InstType.LHU, InstType.LB)) {
+  //   exuCtrl.aluOp := exu.ALUOp.ADD
+  // } .elsewhen(instType.isOneOf(InstType.SRAI, InstType.SRA)) {
+  //   exuCtrl.aluOp := exu.ALUOp.SRA
+  // } .elsewhen(instType.isOneOf(InstType.SRLI, InstType.SRL)) {
+  //   exuCtrl.aluOp := exu.ALUOp.SRL
+  // } .otherwise {
+  // }
+  
+  // when(instType.isOneOf(InstType.ADD, InstType.SUB, InstType.SLL, InstType.SLT, InstType.SLTU, InstType.XOR, InstType.SRL, InstType.SRA, InstType.OR, InstType.AND)) {
+  //   exuCtrl.src2Sel := exu.Src2Sel.RS2
+  // } .otherwise {
+  //   exuCtrl.src2Sel := exu.Src2Sel.IMM
+  // }
+
+
+}
 
