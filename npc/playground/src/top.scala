@@ -5,11 +5,13 @@ import idu._
 import exu._
 
 class Top extends Module {
-	val io = IO(new Bundle {
-	})
-	 val IDU = Module(new idu.InstDecodeUnit())
-	 val EXU = Module(new exu.EXU())
+  val io = IO(new Bundle {
+    val inst = Input(UInt(32.W))
+    val ctrl = Output(new EXUCtrl)
+  })
 
-	 IDU.io := DontCare
-	 EXU.io := DontCare
+  val IDU = Module(new idu.InstDecodeUnit())
+
+  IDU.io.inst := io.inst
+  io.ctrl     := IDU.io.ctrl
 }

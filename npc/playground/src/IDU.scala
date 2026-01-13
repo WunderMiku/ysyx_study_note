@@ -3,12 +3,16 @@ package idu
 import chisel3._
 import chisel3.util.switch
 import chisel3.util.is
+import chisel3.util.MuxLookup
 
 import inst.{InstDecode, InstType}
+import exu.EXUCtrl
+import os.write
 
 class InstDecodeUnit extends Module {
   val io = IO(new Bundle {
     val inst     = Input(UInt(32.W))
+    val ctrl     = Output(new EXUCtrl)
   })
 
   val instDecode = Wire(new InstDecode)
@@ -116,62 +120,222 @@ class InstDecodeUnit extends Module {
 
   // 不支持的指令检测 (暂不使用)
   // assert(instType =/= InstType.NULL, "Unsupported instruction detected in IDU!")
-
-  // ===== EXU 控制信号生成 =====
-  val exuCtrl = Wire(new exu.EXUCtrl)
-
-  exuCtrl.writeBack := instType.isOneOf(
-    InstType.ADD,
-    InstType.ADDI,
-    InstType.JALR,
-    InstType.LUI,
-    InstType.LBU,
-    InstType.LW,
-    InstType.AUIPC,
-    InstType.JAL,
-    InstType.SUB,
-    InstType.SLTIU,
-    InstType.SLTU,
-    InstType.XOR,
-    InstType.OR,
-    InstType.SRAI,
-    InstType.ANDI,
-    InstType.SLL,
-    InstType.AND,
-    InstType.XORI,
-    InstType.SRLI,
-    InstType.SLLI,
-    InstType.SRA,
-    InstType.SRL,
-    InstType.LH,
-    InstType.LHU,
-    InstType.LB,
-    InstType.ORI,
-    InstType.SLTI,
-    InstType.SLT,
-    InstType.CSRRC,
-    InstType.CSRRS,
-    InstType.CSRRW
-  ) && (instDecode.rd =/= 0.U)
-
-  // TODO ALU 操作类型生成
-  // when(instType.isOneOf(InstType.ADD, InstType.ADDI, InstType.JALR, InstType.AUIPC, InstType.JAL,
-  //  InstType.BEQ, InstType.BNE, InstType.BGE, InstType.BLT, InstType.BLTU, InstType.BGEU, InstType.SB,
-  //   InstType.SW, InstType.SH, InstType.LH, InstType.LBU, InstType.LW, InstType.LH, InstType.LHU, InstType.LB)) {
-  //   exuCtrl.aluOp := exu.ALUOp.ADD
-  // } .elsewhen(instType.isOneOf(InstType.SRAI, InstType.SRA)) {
-  //   exuCtrl.aluOp := exu.ALUOp.SRA
-  // } .elsewhen(instType.isOneOf(InstType.SRLI, InstType.SRL)) {
-  //   exuCtrl.aluOp := exu.ALUOp.SRL
-  // } .otherwise {
-  // }
   
-  // when(instType.isOneOf(InstType.ADD, InstType.SUB, InstType.SLL, InstType.SLT, InstType.SLTU, InstType.XOR, InstType.SRL, InstType.SRA, InstType.OR, InstType.AND)) {
-  //   exuCtrl.src2Sel := exu.Src2Sel.RS2
-  // } .otherwise {
-  //   exuCtrl.src2Sel := exu.Src2Sel.IMM
-  // }
+  // ===== EXU 控制信号生成 =====
+  import exu.{EXUCtrl, ALUOp, SignExtend, MemOp, MemWidth, BranchOp, Src1Sel, Src2Sel, CsrOp, SysOp}
 
+  val exuCtrl = Wire(new EXUCtrl)
 
+  // 初始化默认值
+  exuCtrl := 0.U.asTypeOf(new EXUCtrl)
+
+  when(instType === InstType.ADD) {
+    exuCtrl.aluOp := ALUOp.ADD
+    exuCtrl.writeBack := true.B
+
+  } .elsewhen(instType === InstType.SUB) {
+    exuCtrl.aluOp := ALUOp.SUB
+    exuCtrl.writeBack := true.B
+
+  } .elsewhen(instType === InstType.ADDI) {
+    exuCtrl.aluOp := ALUOp.ADD
+    exuCtrl.src2Sel := Src2Sel.IMM
+    exuCtrl.writeBack := true.B
+
+  } .elsewhen(instType === InstType.SLT) {
+    exuCtrl.signExtend := SignExtend.SIGN
+    exuCtrl.branchOp := BranchOp.LESS
+    exuCtrl.writeBack := true.B
+
+  } .elsewhen(instType === InstType.SLTU) {
+    exuCtrl.signExtend := SignExtend.ZERO
+    exuCtrl.branchOp := BranchOp.LESS
+    exuCtrl.writeBack := true.B
+
+  } .elsewhen(instType === InstType.SLTI) {
+    exuCtrl.signExtend := SignExtend.SIGN
+    exuCtrl.src2Sel := Src2Sel.IMM
+    exuCtrl.branchOp := BranchOp.LESS
+    exuCtrl.writeBack := true.B
+
+  } .elsewhen(instType === InstType.SLTIU) {
+    exuCtrl.signExtend := SignExtend.ZERO
+    exuCtrl.src2Sel := Src2Sel.IMM
+    exuCtrl.branchOp := BranchOp.LESS
+    exuCtrl.writeBack := true.B
+
+  } .elsewhen(instType === InstType.XOR) {
+    exuCtrl.aluOp := ALUOp.XOR
+    exuCtrl.writeBack := true.B
+
+  } .elsewhen(instType === InstType.OR) {
+    exuCtrl.aluOp := ALUOp.OR
+    exuCtrl.writeBack := true.B
+
+  } .elsewhen(instType === InstType.AND) {
+    exuCtrl.aluOp := ALUOp.AND
+    exuCtrl.writeBack := true.B
+
+  } .elsewhen(instType === InstType.XORI) { 
+    exuCtrl.aluOp := ALUOp.XOR
+    exuCtrl.src2Sel := Src2Sel.IMM
+    exuCtrl.writeBack := true.B
+
+  } .elsewhen(instType === InstType.ORI) {
+    exuCtrl.aluOp := ALUOp.OR
+    exuCtrl.src2Sel := Src2Sel.IMM
+    exuCtrl.writeBack := true.B
+
+  } .elsewhen(instType === InstType.ANDI) {
+    exuCtrl.aluOp := ALUOp.AND
+    exuCtrl.src2Sel := Src2Sel.IMM
+    exuCtrl.writeBack := true.B
+
+  } .elsewhen(instType === InstType.SLL) {
+    exuCtrl.aluOp := ALUOp.SL
+    exuCtrl.writeBack := true.B
+
+  } .elsewhen(instType === InstType.SLLI) {
+    exuCtrl.aluOp := ALUOp.SL
+    exuCtrl.src2Sel := Src2Sel.IMM
+    exuCtrl.writeBack := true.B
+
+  } .elsewhen(instType === InstType.SRL) {
+    exuCtrl.aluOp := ALUOp.SR
+    exuCtrl.signExtend := SignExtend.ZERO
+    exuCtrl.writeBack := true.B
+
+  } .elsewhen(instType === InstType.SRLI) {
+    exuCtrl.aluOp := ALUOp.SR
+    exuCtrl.signExtend := SignExtend.ZERO
+    exuCtrl.src2Sel := Src2Sel.IMM
+    exuCtrl.writeBack := true.B
+
+  } .elsewhen(instType === InstType.SRA) {
+    exuCtrl.aluOp := ALUOp.SR
+    exuCtrl.signExtend := SignExtend.SIGN
+    exuCtrl.writeBack := true.B
+
+  } .elsewhen(instType === InstType.SRAI) {
+    exuCtrl.aluOp := ALUOp.SR
+    exuCtrl.src2Sel := Src2Sel.IMM
+    exuCtrl.signExtend := SignExtend.SIGN
+    exuCtrl.writeBack := true.B
+
+  } .elsewhen(instType === InstType.LB) {
+    exuCtrl.aluOp := ALUOp.ADD
+    exuCtrl.signExtend := SignExtend.SIGN
+    exuCtrl.memOp := MemOp.LOAD
+    exuCtrl.memWidth := MemWidth.BYTE
+    exuCtrl.src2Sel := Src2Sel.IMM
+    exuCtrl.writeBack := true.B
+
+  } .elsewhen(instType === InstType.LBU) {
+    exuCtrl.aluOp := ALUOp.ADD
+    exuCtrl.signExtend := SignExtend.ZERO
+    exuCtrl.memOp := MemOp.LOAD
+    exuCtrl.memWidth := MemWidth.BYTE
+    exuCtrl.src2Sel := Src2Sel.IMM
+    exuCtrl.writeBack := true.B
+
+  } .elsewhen(instType === InstType.LH) {
+    exuCtrl.aluOp := ALUOp.ADD
+    exuCtrl.signExtend := SignExtend.SIGN
+    exuCtrl.memOp := MemOp.LOAD
+    exuCtrl.memWidth := MemWidth.HALF
+    exuCtrl.src2Sel := Src2Sel.IMM
+    exuCtrl.writeBack := true.B
+
+  } .elsewhen(instType === InstType.LHU) {
+    exuCtrl.aluOp := ALUOp.ADD
+    exuCtrl.signExtend := SignExtend.ZERO
+    exuCtrl.memOp := MemOp.LOAD
+    exuCtrl.memWidth := MemWidth.HALF
+    exuCtrl.src2Sel := Src2Sel.IMM
+    exuCtrl.writeBack := true.B
+
+  } .elsewhen(instType === InstType.LW) {
+    exuCtrl.aluOp := ALUOp.ADD
+    exuCtrl.signExtend := SignExtend.SIGN
+    exuCtrl.memOp := MemOp.LOAD
+    exuCtrl.memWidth := MemWidth.WORD
+    exuCtrl.src2Sel := Src2Sel.IMM
+    exuCtrl.writeBack := true.B
+
+  } .elsewhen(instType === InstType.SB) {
+    exuCtrl.aluOp := ALUOp.ADD
+    exuCtrl.memOp := MemOp.STORE
+    exuCtrl.memWidth := MemWidth.BYTE
+    exuCtrl.src2Sel := Src2Sel.IMM
+
+  } .elsewhen(instType === InstType.SH) {
+    exuCtrl.aluOp := ALUOp.ADD
+    exuCtrl.memOp := MemOp.STORE
+    exuCtrl.memWidth := MemWidth.HALF
+    exuCtrl.src2Sel := Src2Sel.IMM
+
+  } .elsewhen(instType === InstType.SW) {
+    exuCtrl.aluOp := ALUOp.ADD
+    exuCtrl.memOp := MemOp.STORE
+    exuCtrl.memWidth := MemWidth.WORD
+    exuCtrl.src2Sel := Src2Sel.IMM
+
+  } .elsewhen(instType === InstType.BEQ) {
+    exuCtrl.branchOp := BranchOp.EQ
+
+  } .elsewhen(instType === InstType.BNE) {
+    exuCtrl.branchOp := BranchOp.NEQ
+
+  } .elsewhen(instType === InstType.BLT) {
+    exuCtrl.signExtend := SignExtend.SIGN
+    exuCtrl.branchOp := BranchOp.LESS
+
+  } .elsewhen(instType === InstType.BGE) {
+    exuCtrl.signExtend := SignExtend.SIGN
+    exuCtrl.branchOp := BranchOp.GEQ
+
+  } .elsewhen(instType === InstType.BLTU) {
+    exuCtrl.signExtend := SignExtend.ZERO
+    exuCtrl.branchOp := BranchOp.LESS
+
+  } .elsewhen(instType === InstType.BGEU) {
+    exuCtrl.signExtend := SignExtend.ZERO
+    exuCtrl.branchOp := BranchOp.GEQ
+
+  } .elsewhen(instType === InstType.JAL) {
+    exuCtrl.aluOp := ALUOp.JAL
+    exuCtrl.src1Sel := Src1Sel.PC
+    exuCtrl.src2Sel := Src2Sel.IMM
+    exuCtrl.writeBack := true.B
+
+  } .elsewhen(instType === InstType.JALR) {
+    exuCtrl.aluOp := ALUOp.JALR
+    exuCtrl.src2Sel := Src2Sel.IMM
+    exuCtrl.writeBack := true.B
+
+  } .elsewhen(instType === InstType.LUI) {
+    exuCtrl.aluOp := ALUOp.LUI
+    exuCtrl.src1Sel := Src1Sel.NONE
+    exuCtrl.src2Sel := Src2Sel.IMM
+    exuCtrl.writeBack := true.B
+
+  } .elsewhen(instType === InstType.AUIPC) {
+    exuCtrl.aluOp := ALUOp.AUIPC
+    exuCtrl.src1Sel := Src1Sel.PC
+    exuCtrl.src2Sel := Src2Sel.IMM
+    exuCtrl.writeBack := true.B
+
+  } 
+  .elsewhen(instType === InstType.ECALL) { exuCtrl.sysOp := SysOp.ECALL }
+  .elsewhen(instType === InstType.EBREAK) { exuCtrl.sysOp := SysOp.EBREAK }
+  .elsewhen(instType === InstType.MRET) { exuCtrl.sysOp := SysOp.MRET }
+  .elsewhen(instType === InstType.CSRRW) { exuCtrl.csrOp := CsrOp.CSRRW; exuCtrl.writeBack := true.B }
+  .elsewhen(instType === InstType.CSRRS) { exuCtrl.csrOp := CsrOp.CSRRS; exuCtrl.writeBack := true.B }
+  .elsewhen(instType === InstType.CSRRC) { exuCtrl.csrOp := CsrOp.CSRRC; exuCtrl.writeBack := true.B } 
+  .otherwise {
+   assert(false.B, "unsupported instruction")
+  }
+
+  io.ctrl := exuCtrl
 }
 
