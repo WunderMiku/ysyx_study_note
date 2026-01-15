@@ -6,14 +6,20 @@ import chisel3.util.is
 import chisel3.util.MuxLookup
 
 import inst.{InstDecode, InstType}
-import exu.EXUCtrl
-import os.write
+import exu.{EXUCtrl, EXUData}
+import chisel3.util.Cat
 
 class InstDecodeUnit extends Module {
   val io = IO(new Bundle {
     val inst     = Input(UInt(32.W))
     val ctrl     = Output(new EXUCtrl)
+    val data     = Output(new EXUData)
   })
+
+  io.data.rs1Value := io.inst(19, 15)
+  io.data.rs2Value := io.inst(24, 20)
+  io.data.rdAddress := io.inst(11, 7)
+  io.data.imm := 0.U // 立即数由下面指令类型决定
 
   val instDecode = Wire(new InstDecode)
   instDecode.opcode := io.inst(6, 0)
@@ -49,6 +55,7 @@ class InstDecodeUnit extends Module {
 
     // =================== I-type ===================
     is("b0010011".U) {
+      io.data.imm := io.inst(31, 20) // I-type 立即数
       switch(instDecode.funct3) {
         is(0.U) { instType := InstType.ADDI }
         is(1.U) { instType := InstType.SLLI }
@@ -65,6 +72,7 @@ class InstDecodeUnit extends Module {
     }
 
     is("b0000011".U) {
+      io.data.imm := io.inst(31, 20) // I-type 立即数
       switch(instDecode.funct3) {
         is(0.U) { instType := InstType.LB }
         is(1.U) { instType := InstType.LH }
@@ -76,6 +84,7 @@ class InstDecodeUnit extends Module {
 
     // =================== S-type ===================
     is("b0100011".U) {
+      io.data.imm := Cat(io.inst(31, 25), io.inst(11, 7)) // S-type 立即数
       switch(instDecode.funct3) {
         is(0.U) { instType := InstType.SB }
         is(1.U) { instType := InstType.SH }
@@ -85,6 +94,7 @@ class InstDecodeUnit extends Module {
 
     // =================== B-type ===================
     is("b1100011".U) {
+      io.data.imm := Cat(io.inst(31), io.inst(7), io.inst(30, 25), io.inst(11, 8)) << 1 // B-type 立即数
       switch(instDecode.funct3) {
         is(0.U) { instType := InstType.BEQ }
         is(1.U) { instType := InstType.BNE }
@@ -96,17 +106,25 @@ class InstDecodeUnit extends Module {
     }
 
     // =================== U-type ===================
-    is("b0110111".U) { instType := InstType.LUI }
-    is("b0010111".U) { instType := InstType.AUIPC }
+    is("b0110111".U) { 
+      io.data.imm := io.inst(31, 12) // U-type 立即数
+      instType := InstType.LUI }
+    is("b0010111".U) { 
+      io.data.imm := io.inst(31, 12) // U-type 立即数
+      instType := InstType.AUIPC }
 
     // =================== J-type ===================
-    is("b1101111".U) { instType := InstType.JAL }
+    is("b1101111".U) { 
+      io.data.imm := Cat(io.inst(31), io.inst(19,12), io.inst(20), io.inst(30,21)) << 1 // J-type 立即数
+      instType := InstType.JAL }
     is("b1100111".U) {
+      io.data.imm := Cat(io.inst(31), io.inst(19,12), io.inst(20), io.inst(30,21)) << 1 // J-type 立即数
       when(instDecode.funct3 === 0.U) { instType := InstType.JALR }
     }
 
     // =================== CSR / 系统 ===================
     is("b1110011".U) {
+      io.data.imm := io.inst(31, 20) // I-type 立即数
       switch(instDecode.funct3) {
         is(1.U) { instType := InstType.CSRRW }
         is(2.U) { instType := InstType.CSRRS }
@@ -144,24 +162,24 @@ class InstDecodeUnit extends Module {
 
   } .elsewhen(instType === InstType.SLT) {
     exuCtrl.signExtend := SignExtend.SIGN
-    exuCtrl.branchOp := BranchOp.LESS
+    exuCtrl.aluOp := ALUOp.LESS
     exuCtrl.writeBack := true.B
 
   } .elsewhen(instType === InstType.SLTU) {
     exuCtrl.signExtend := SignExtend.ZERO
-    exuCtrl.branchOp := BranchOp.LESS
+    exuCtrl.aluOp := ALUOp.LESS
     exuCtrl.writeBack := true.B
 
   } .elsewhen(instType === InstType.SLTI) {
     exuCtrl.signExtend := SignExtend.SIGN
     exuCtrl.src2Sel := Src2Sel.IMM
-    exuCtrl.branchOp := BranchOp.LESS
+    exuCtrl.aluOp := ALUOp.LESS
     exuCtrl.writeBack := true.B
 
   } .elsewhen(instType === InstType.SLTIU) {
     exuCtrl.signExtend := SignExtend.ZERO
     exuCtrl.src2Sel := Src2Sel.IMM
-    exuCtrl.branchOp := BranchOp.LESS
+    exuCtrl.aluOp := ALUOp.LESS
     exuCtrl.writeBack := true.B
 
   } .elsewhen(instType === InstType.XOR) {
@@ -192,32 +210,32 @@ class InstDecodeUnit extends Module {
     exuCtrl.writeBack := true.B
 
   } .elsewhen(instType === InstType.SLL) {
-    exuCtrl.aluOp := ALUOp.SL
+    exuCtrl.aluOp := ALUOp.ShiftLeft
     exuCtrl.writeBack := true.B
 
   } .elsewhen(instType === InstType.SLLI) {
-    exuCtrl.aluOp := ALUOp.SL
+    exuCtrl.aluOp := ALUOp.ShiftLeft
     exuCtrl.src2Sel := Src2Sel.IMM
     exuCtrl.writeBack := true.B
 
   } .elsewhen(instType === InstType.SRL) {
-    exuCtrl.aluOp := ALUOp.SR
+    exuCtrl.aluOp := ALUOp.ShiftRight
     exuCtrl.signExtend := SignExtend.ZERO
     exuCtrl.writeBack := true.B
 
   } .elsewhen(instType === InstType.SRLI) {
-    exuCtrl.aluOp := ALUOp.SR
+    exuCtrl.aluOp := ALUOp.ShiftRight
     exuCtrl.signExtend := SignExtend.ZERO
     exuCtrl.src2Sel := Src2Sel.IMM
     exuCtrl.writeBack := true.B
 
   } .elsewhen(instType === InstType.SRA) {
-    exuCtrl.aluOp := ALUOp.SR
+    exuCtrl.aluOp := ALUOp.ShiftRight
     exuCtrl.signExtend := SignExtend.SIGN
     exuCtrl.writeBack := true.B
 
   } .elsewhen(instType === InstType.SRAI) {
-    exuCtrl.aluOp := ALUOp.SR
+    exuCtrl.aluOp := ALUOp.ShiftRight
     exuCtrl.src2Sel := Src2Sel.IMM
     exuCtrl.signExtend := SignExtend.SIGN
     exuCtrl.writeBack := true.B
@@ -282,34 +300,46 @@ class InstDecodeUnit extends Module {
 
   } .elsewhen(instType === InstType.BEQ) {
     exuCtrl.branchOp := BranchOp.EQ
+    exuCtrl.src1Sel := Src1Sel.PC
+    exuCtrl.src2Sel := Src2Sel.IMM
 
   } .elsewhen(instType === InstType.BNE) {
     exuCtrl.branchOp := BranchOp.NEQ
+    exuCtrl.src1Sel := Src1Sel.PC
+    exuCtrl.src2Sel := Src2Sel.IMM
 
   } .elsewhen(instType === InstType.BLT) {
     exuCtrl.signExtend := SignExtend.SIGN
     exuCtrl.branchOp := BranchOp.LESS
+    exuCtrl.src1Sel := Src1Sel.PC
+    exuCtrl.src2Sel := Src2Sel.IMM
 
   } .elsewhen(instType === InstType.BGE) {
     exuCtrl.signExtend := SignExtend.SIGN
     exuCtrl.branchOp := BranchOp.GEQ
+    exuCtrl.src1Sel := Src1Sel.PC
+    exuCtrl.src2Sel := Src2Sel.IMM
 
   } .elsewhen(instType === InstType.BLTU) {
     exuCtrl.signExtend := SignExtend.ZERO
     exuCtrl.branchOp := BranchOp.LESS
+    exuCtrl.src1Sel := Src1Sel.PC
+    exuCtrl.src2Sel := Src2Sel.IMM
 
   } .elsewhen(instType === InstType.BGEU) {
     exuCtrl.signExtend := SignExtend.ZERO
     exuCtrl.branchOp := BranchOp.GEQ
+    exuCtrl.src1Sel := Src1Sel.PC
+    exuCtrl.src2Sel := Src2Sel.IMM
 
   } .elsewhen(instType === InstType.JAL) {
-    exuCtrl.aluOp := ALUOp.JAL
+    exuCtrl.branchOp := BranchOp.JAL
     exuCtrl.src1Sel := Src1Sel.PC
     exuCtrl.src2Sel := Src2Sel.IMM
     exuCtrl.writeBack := true.B
 
   } .elsewhen(instType === InstType.JALR) {
-    exuCtrl.aluOp := ALUOp.JALR
+    exuCtrl.branchOp := BranchOp.JALR
     exuCtrl.src2Sel := Src2Sel.IMM
     exuCtrl.writeBack := true.B
 

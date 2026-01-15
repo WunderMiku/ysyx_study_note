@@ -12,6 +12,15 @@ class IDUTest extends AnyFlatSpec with ChiselScalatestTester {
       dut.io.inst.poke("h00000033".U) // ADD R-type
       dut.clock.step()
       dut.io.ctrl.aluOp.expect(ALUOp.ADD)
+      dut.io.ctrl.branchOp.expect(BranchOp.NONE)
+      dut.io.ctrl.csrOp.expect(CsrOp.NONE)
+      dut.io.ctrl.sysOp.expect(SysOp.NONE)
+      dut.io.ctrl.memOp.expect(MemOp.NONE)
+      dut.io.ctrl.memWidth.expect(MemWidth.NONE)
+      dut.io.ctrl.src1Sel.expect(Src1Sel.RS1)
+      dut.io.ctrl.src2Sel.expect(Src2Sel.RS2)
+      dut.io.ctrl.writeBack.expect(true.B)
+      dut.io.ctrl.signExtend.expect(SignExtend.NONE)
     }
   }
 

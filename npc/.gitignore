@@ -3,21 +3,14 @@
 !*/
 !Makefile
 !*.mk
-!*.scala
 !*.[cSh]
 !*.v
-!*.cpp
+!*.sv
 !*.cc
+!*.cpp
+!*.h
+!*.nxdc
 !.gitignore
-!.scalafmt.conf
 !README.md
+!resources/*
 build/
-
-# mill
-!*.mill
-!.mill-version
-out/
-.bsp/
-.idea/
-.idea_modules/
-test_run_dir/

@@ -1,0 +1,33 @@
+/***************************************************************************************
+* Copyright (c) 2014-2024 Zihao Yu, Nanjing University
+*
+* NEMU is licensed under Mulan PSL v2.
+* You can use this software according to the terms and conditions of the Mulan PSL v2.
+* You may obtain a copy of Mulan PSL v2 at:
+*          http://license.coscl.org.cn/MulanPSL2
+*
+* THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+* EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+* MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+*
+* See the Mulan PSL v2 for more details.
+***************************************************************************************/
+
+#ifndef __DEBUG_H__
+#define __DEBUG_H__
+
+#define ANSI_FMT(str, fmt) fmt str COLOR_NONE
+
+#define Assert(cond, format, ...) \
+  do { \
+    if (!(cond)) { \
+      fflush(stdout), fprintf(stderr, ANSI_FMT(format, COLOR_RED) "\n", ##  __VA_ARGS__); \
+      assert(cond); \
+    } \
+  } while (0)
+
+#define panic(format, ...) Assert(0, format, ## __VA_ARGS__)
+
+#define TODO() panic("please implement me")
+
+#endif
