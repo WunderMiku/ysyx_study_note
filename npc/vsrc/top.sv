@@ -1,3 +1,19 @@
+// =========== 总线实现 ===========
+  interface simple_bus();
+    logic valid, ready;
+    
+    modport master (
+      output valid,
+      input ready
+    );
+
+    modport slave (
+      input valid,
+      output ready
+    );
+
+  endinterface //simple_bus
+
 module ysyx_25090244_top (
   input clk,
   input rst,
@@ -17,43 +33,64 @@ module ysyx_25090244_top (
   output [31:0] out_pc,
   output [31:0] out_reg [31:0],
   output [31:0] out_csr [3:0],
-  output inst_valid_flag
+  output inst_valid_flag,
+  output IFU_valid_flag
 );
+  // // Ram 临时实现
+  // RegisterFile ram(
+  //   .clk(clk),
+  //   .raddr(ramReadAddr),
+  //   .rdata(ramReadData),
+  //   .re(ramRe),
+  //   .waddr(ramWriteAddr),
+  //   .wdata(ramWriteData),
+  //   .wmask(ramWriteMask),
+  //   .we(ramWe)
+  // );
+
+  // logic [31:0] inst_data;
+  // RegisterFile_ROM rom(
+  //   .clk(clk),
+  //   .re(1'b1),
+  //   .raddr(pc),
+  //   .rdata(inst_data)
+  // );
+
   // =========== 调试接口实现 ===========
   assign inst_valid_flag = |{add_en, addi_en, lui_en, lw_en, lbu_en, sw_en, sb_en, jalr_en, ebreak_en, auipc_en, jal_en,
                              sub_en, sltiu_en, beq_en, bne_en, sltu_en, xor_en, or_en, sh_en, srai_en, andi_en, sll_en, 
                              and_en, xori_en, bge_en, blt_en, srli_en, bgeu_en, slli_en, bltu_en, sra_en, srl_en, lh_en,
                              lhu_en, lb_en, ori_en, slti_en, slt_en, csrrc_en, csrrs_en, csrrw_en, ecall_en, mret_en};
+  assign IFU_valid_flag = ifu2idu_bus.valid;
 
-  // =========== IFU实现 ===========
-  import "DPI-C" function int pmem_read(input int raddr, input int len);
-  import "DPI-C" function void pmem_write(input int waddr, input int wdata, input byte wmask);
+  // =========== IFU例化 ===========
+  wire [31:0] inst;
+  simple_bus ifu2idu_bus();
+  ysyx_25090244_IFU uIFU (
+    .clk(clk),
+    .rst(rst),
+    .pc(pc),
+    .inst(inst),
 
-  reg [31:0] inst;
-  always @(*) begin
-    if(!rst) begin
-    inst = pmem_read(pc, 4);
-    end else begin
-      inst = 32'b0;
-    end
-  end
-
+    .bus_out(ifu2idu_bus)
+  );
   assign out_pc = pc;
   
   // =========== PC 寄存器实现 ===========
-  reg  [31:0] pc;
+  wire  [31:0] pc;
   wire [31:0] next_pc;
 
   // WBU 输入 至 PC
   assign next_pc = wb_next_pc;
 
-  always @(posedge clk) begin
-    if (rst) begin
-      pc <= 32'h80000000;
-    end else begin
-      pc <= next_pc;
-    end
-  end
+  ysyx_25090244_PC uPC (
+    .clk(clk),
+    .rst(rst),
+    .next_pc(next_pc),
+    .pc(pc),
+
+    .bus_in(wbu2pc_bus)
+  );
 
 
   // =========== IDU 例化 ===========
@@ -68,6 +105,10 @@ module ysyx_25090244_top (
   wire [12:0] B_imm;
   wire [31:0] U_imm;
   wire [20:0] J_imm;
+
+  // 总线连接
+  simple_bus idu2exu_bus();
+
   ysyx_25090244_IDU uIDU (
     .inst(inst),
     .rs1_addr(rs1_addr),
@@ -88,7 +129,10 @@ module ysyx_25090244_top (
     .S_imm(S_imm),
     .B_imm(B_imm),
     .U_imm(U_imm),
-    .J_imm(J_imm)
+    .J_imm(J_imm),
+
+    .bus_in(ifu2idu_bus),
+    .bus_out(idu2exu_bus)
   );
 
 
@@ -125,6 +169,11 @@ module ysyx_25090244_top (
   // 寄存器值输入（rs1 rs2 输入）
   assign ex_rs1_val = reg_addr1_val;
   assign ex_rs2_val = reg_addr2_val;
+  
+  // 总线连接
+  simple_bus exu2wbu_bus();
+  simple_bus exu2reg_bus();
+  simple_bus exu2csr_bus();
 
   ysyx_25090244_EXU uEXU (
     .add_en(add_en), .addi_en(addi_en), .lui_en(lui_en), .lw_en(lw_en), .lbu_en(lbu_en),
@@ -166,7 +215,12 @@ module ysyx_25090244_top (
 
     .csr_we1(ex_csr_we1),
     .csr_waddr1(ex_csr_waddr1),
-    .csr_wdata1(ex_csr_wdata1)
+    .csr_wdata1(ex_csr_wdata1),
+
+    .bus_in(idu2exu_bus),
+    .bus_out2wb(exu2wbu_bus),
+    .bus_out2reg(exu2reg_bus),
+    .bus_out2csr(exu2csr_bus)
   );
 
 
@@ -191,7 +245,7 @@ module ysyx_25090244_top (
   
   ysyx_25090244_RV32_regs uRV32_regs (
     .clk(clk),
-    .write_ena(reg_write_ena),
+    .write_ena_in(reg_write_ena),
     .write_addr(reg_write_addr),
     .write_val(reg_write_val),
 
@@ -201,7 +255,9 @@ module ysyx_25090244_top (
     .read_addr2(reg_read_addr2),
     .addr2_val(reg_addr2_val),
     .A0_val(A0_val),
-    .reg_val(out_reg)
+    .reg_val(out_reg),
+
+    .bus_in(exu2reg_bus)
   );
 
 
@@ -226,7 +282,7 @@ module ysyx_25090244_top (
     .clk(clk),
     .rst(rst),
     
-    .we(csr_we),
+    .we_in(csr_we),
     .waddr(csr_waddr),
     .wdata(csr_wdata),
 
@@ -236,7 +292,9 @@ module ysyx_25090244_top (
     .we1_in(csr_we1),
     .waddr1(csr_waddr1),
     .wdata1(csr_wdata1),
-    .out_csr(out_csr)
+    .out_csr(out_csr),
+
+    .bus_in(exu2csr_bus)
   );
 
 
@@ -252,6 +310,8 @@ module ysyx_25090244_top (
   wire wb_csr_we1;
   wire [11:0] wb_csr_waddr1;
   wire [31:0] wb_csr_wdata1;
+
+  simple_bus wbu2pc_bus();
 
   ysyx_25090244_WBU uWBU (
     .next_pc_EX(ex_next_pc),
@@ -282,17 +342,28 @@ module ysyx_25090244_top (
 
     .csr_we1(wb_csr_we1),
     .csr_waddr1(wb_csr_waddr1),
-    .csr_wdata1(wb_csr_wdata1)
+    .csr_wdata1(wb_csr_wdata1),
+
+    .bus_in(exu2wbu_bus),
+    .bus_out(wbu2pc_bus)
   );
 
 
   // =========== LSU 例化 ===========
-  wire ls_ram_we;
-  wire [31:0] ls_ram_write_addr, ls_ram_write_data;
-  wire [3:0] ls_ram_write_mask;
+  wire [31:0] ram_read_data;
 
-  wire ls_ram_re;
-  wire [31:0] ls_ram_read_addr;
+  // 临时辅助信号
+  wire ram_we_Top;
+  wire [31:0] ram_write_data_Top;
+  wire [31:0] ram_write_addr_Top;
+  wire [3:0]  ram_write_mask_Top;
+
+  wire ram_re_Top;
+  wire [31:0] ram_read_addr_Top;
+  wire [31:0] ram_read_data_Top;
+
+  simple_bus exu2lsu_bus();
+  // TODO : add LSU connections in EXU and WBU if needed
 
   ysyx_25090244_LSU uLSU (
     .ram_we_EX(ex_ram_we),
@@ -303,22 +374,27 @@ module ysyx_25090244_top (
     .ram_re_EX(ex_ram_re),
     .ram_read_addr_EX(ex_ram_read_addr),
 
-    .ram_we(ls_ram_we),
-    .ram_write_addr(ls_ram_write_addr),
-    .ram_write_data(ls_ram_write_data),
-    .ram_write_mask(ls_ram_write_mask),
+    .ram_read_data(ram_read_data),
 
-    .ram_re(ls_ram_re),
-    .ram_read_addr(ls_ram_read_addr)
+    // 临时辅助信号
+    .ram_we_Top(ram_we_Top),
+    .ram_write_data_Top(ram_write_data_Top),
+    .ram_write_addr_Top(ram_write_addr_Top),
+    .ram_write_mask_Top(ram_write_mask_Top),
+
+    .ram_re_Top(ram_re_Top),
+    .ram_read_addr_Top(ram_read_addr_Top),
+    .ram_read_data_Top(ram_read_data_Top)
   );
   
-  // =========== RAM 接口处理 ===========
-  assign ramReadAddr = ls_ram_read_addr;
-  assign ramRe = ls_ram_re;
+  // =========== RAM 辅助接口处理 ===========
+  assign ramWe = ram_we_Top;
+  assign ramWriteData = ram_write_data_Top;
+  assign ramWriteAddr = ram_write_addr_Top;
+  assign ramWriteMask = ram_write_mask_Top;
 
-  assign ramWriteAddr = ls_ram_write_addr;
-  assign ramWriteData = ls_ram_write_data;
-  assign ramWriteMask = ls_ram_write_mask;
-  assign ramWe = ls_ram_we;
+  assign ramRe = ram_re_Top;
+  assign ramReadAddr = ram_read_addr_Top;
+  assign ramReadData = ram_read_data_Top;
   
 endmodule

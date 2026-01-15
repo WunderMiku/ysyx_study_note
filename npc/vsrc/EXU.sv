@@ -84,8 +84,20 @@ module ysyx_25090244_EXU (
 	// CSR 附加写接口
 	output csr_we1,
 	output [11:0] csr_waddr1,
-	output [31:0] csr_wdata1
+	output [31:0] csr_wdata1,
+
+	// 总线控制
+	simple_bus.slave bus_in,
+	simple_bus.master bus_out2wb,
+	simple_bus.master bus_out2reg,
+	simple_bus.master bus_out2csr
 );
+	// =========== 总线信号控制 ===========
+
+	assign bus_out2wb.valid = bus_in.valid;
+	assign bus_out2reg.valid = bus_in.valid;
+	assign bus_out2csr.valid = bus_in.valid;
+	
 	// =========== 寄存器信号控制 =========== 
 	// 寄存器写使能
 	assign reg_we = (add_en | addi_en | jalr_en | lui_en | lbu_en | lw_en |
@@ -230,6 +242,7 @@ module ysyx_25090244_EXU (
 	export "DPI-C" function ebreak_get;
 	function bit ebreak_get(output bit ebreak);
 		ebreak = ebreak_en;
+		return ebreak;
 	endfunction
 
 endmodule

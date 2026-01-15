@@ -3,7 +3,7 @@ module ysyx_25090244_RV32_csrs (
 	input rst,
 
 	// csr 读写接口
-	input we,
+	input we_in,
 	input [11:0] waddr,
 	input [31:0] wdata,
 
@@ -16,10 +16,18 @@ module ysyx_25090244_RV32_csrs (
 	input [31:0] wdata1,
 
 	// 调试接口
-	output reg [31:0] out_csr [3:0]
+	output reg [31:0] out_csr [3:0],
+
+	// 总线连接
+	simple_bus.slave bus_in
 );
-	// 避免写冲突
-	wire we1 = (waddr1 == waddr) ? 0 : we1_in;
+	// 写使能控制
+	wire we = we_in && bus_in.valid;
+	
+	// 避免写冲突与控制
+	wire we1 = ((waddr1 == waddr) || ~bus_in.valid) ? 0 : we1_in;
+
+	wire [31:0] csr_rdata;
 	
 	// mcycle 
 	reg [63:0] mcycle_reg;

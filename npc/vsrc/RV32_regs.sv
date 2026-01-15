@@ -2,7 +2,7 @@ module ysyx_25090244_RV32_regs (
 	input clk,
 
 	// 写端口
-	input write_ena,
+	input write_ena_in,
 	input [4:0] write_addr,
 	input [31:0] write_val,
 
@@ -18,8 +18,14 @@ module ysyx_25090244_RV32_regs (
 	output [31:0] A0_val,
 
 	// 所有寄存器输出 (调试接口)
-	output [31:0] reg_val [31:0]
+	output [31:0] reg_val [31:0],
+
+	// 总线连接
+	simple_bus.slave bus_in
 );
+
+	// 写使能控制
+	wire write_ena = write_ena_in && bus_in.valid;
 
 	reg [31:0] rv_regs [31:0];
 

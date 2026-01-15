@@ -30,9 +30,15 @@ module ysyx_25090244_WBU (
 
 	output        csr_we1,
 	output [11:0] csr_waddr1,
-	output [31:0] csr_wdata1
-);
+	output [31:0] csr_wdata1,
 
+	simple_bus.slave bus_in,
+	simple_bus.master bus_out
+);
+	// =========== 总线信号控制 ===========
+	assign bus_out.valid = bus_in.valid;
+
+	// =========== 其他信号控制 ===========
 	assign next_pc = next_pc_EX;
 	assign reg_we = reg_we_EX;
 	assign reg_addr = reg_addr_EX;

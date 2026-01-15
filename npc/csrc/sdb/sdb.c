@@ -7,6 +7,7 @@
 #include "ram.h"
 #include "watchpoint.h"
 #include "sdb.h"
+#include "getstatus.h"
 #include <macro.h>
 
 static char* inputGets() {
@@ -58,6 +59,8 @@ static int cmd_dx(char* args);
 
 static int cmd_info_diff(char *args);
 
+static int cmd_status(char *args);
+
 static struct {
   const char *name;
   const char *description;
@@ -74,7 +77,8 @@ static struct {
   {"w", "add watchpoint", cmd_w},
   {"d", "delete watchpoint", cmd_d},
   {"b", "set breakpoint", cmd_b},
-  {"dx", "scan ref(NEMU) memory", cmd_dx}
+  {"dx", "scan ref(NEMU) memory", cmd_dx},
+  {"status", "print all modules status", cmd_status}
 
   /* TODO: Add more commands */
 
@@ -499,5 +503,10 @@ static int cmd_b(char* args) {
     printf("Failed to establish a new breakpoint. \n");
   }
   
+  return 0;
+}
+
+static int cmd_status(char *args) {
+  print_all_status();
   return 0;
 }
