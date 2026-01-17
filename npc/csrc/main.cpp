@@ -120,7 +120,7 @@ static int checkEbreak() {
 }
 
 static bool checkInstVaild() {
-	if(!(dut->inst_valid_flag)) {
+	if(!dut->inst_valid_flag) {
 		npcState.state = NPC_ABORT;
 		printf(COLOR_RED "Invalid instruction:\t%s\n" COLOR_NONE, npcState.instLog);
 		return false;

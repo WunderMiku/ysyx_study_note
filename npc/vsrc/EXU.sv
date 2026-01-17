@@ -67,7 +67,7 @@ module ysyx_25090244_EXU (
 	output        ram_re,
 	output [31:0] ram_read_addr,
 
-	// 寄存器接口
+	// 寄存器接口(ToWBU)
 	output        reg_we,
 	output [4:0]  reg_addr,
 	output [31:0] reg_data,
@@ -86,17 +86,14 @@ module ysyx_25090244_EXU (
 	output [11:0] csr_waddr1,
 	output [31:0] csr_wdata1,
 
-	// 总线控制
-	simple_bus.slave bus_in,
-	simple_bus.master bus_out2wb,
-	simple_bus.master bus_out2reg,
-	simple_bus.master bus_out2csr
+	// TOP 控制使能
+	input en
 );
-	// =========== 总线信号控制 ===========
 
-	assign bus_out2wb.valid = bus_in.valid;
-	assign bus_out2reg.valid = bus_in.valid;
-	assign bus_out2csr.valid = bus_in.valid;
+	wire csr_we_control, csr_we1_control;
+	assign csr_we = csr_we_control & en; 
+	assign csr_we1 = csr_we1_control & en;
+	 
 	
 	// =========== 寄存器信号控制 =========== 
 	// 寄存器写使能
@@ -166,7 +163,7 @@ module ysyx_25090244_EXU (
 
 
 	// =========== 储存器信号控制 =========== 
-	assign ram_we = sb_en | sw_en | sh_en;
+	assign ram_we = (sb_en | sw_en | sh_en);
 
 	assign ram_write_data = ({32{sb_en}} & ({4{rs2_val[7:0]}})) |
 	                        ({32{sw_en}} & (rs2_val[31:0])) |
@@ -213,7 +210,7 @@ module ysyx_25090244_EXU (
 
 
 	// =========== CSR信号控制 =========== 
-	assign csr_we = (csrrc_en | csrrs_en | csrrw_en | ecall_en);
+	assign csr_we_control = (csrrc_en | csrrs_en | csrrw_en | ecall_en);
 
 	assign csr_waddr = ({12{csrrc_en | csrrs_en | csrrw_en}} & imm[11:0]) |
 		                 ({12{ecall_en}} & 12'h341) | // mepc
@@ -230,7 +227,7 @@ module ysyx_25090244_EXU (
 										 ({12{mret_en}} & 12'h341) |  // mepc
 	                   12'b0;
 	
-	assign csr_we1 = ecall_en;
+	assign csr_we1_control = ecall_en;
 
 	assign csr_waddr1 = ({12{ecall_en}} & 12'h342) | // mcause
 	                    12'b0; 

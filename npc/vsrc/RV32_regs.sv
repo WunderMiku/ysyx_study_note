@@ -18,14 +18,11 @@ module ysyx_25090244_RV32_regs (
 	output [31:0] A0_val,
 
 	// 所有寄存器输出 (调试接口)
-	output [31:0] reg_val [31:0],
-
-	// 总线连接
-	simple_bus.slave bus_in
+	output [31:0] reg_val [31:0]
 );
 
 	// 写使能控制
-	wire write_ena = write_ena_in && bus_in.valid;
+	wire write_ena = write_ena_in;
 
 	reg [31:0] rv_regs [31:0];
 

@@ -1,18 +1,14 @@
 // =========== 总线实现 ===========
-  interface simple_bus();
-    logic valid, ready;
-    
-    modport master (
-      output valid,
-      input ready
-    );
+interface simple_bus_IFU();
+  logic [31:0] ifu_raddr;
+  logic [31:0] ifu_rdata;
 
-    modport slave (
-      input valid,
-      output ready
-    );
+  modport IFU_port (
+    input ifu_raddr,
+    output ifu_rdata
+  );
 
-  endinterface //simple_bus
+endinterface 
 
 module ysyx_25090244_top (
   input clk,
@@ -34,50 +30,100 @@ module ysyx_25090244_top (
   output [31:0] out_reg [31:0],
   output [31:0] out_csr [3:0],
   output inst_valid_flag,
-  output IFU_valid_flag
-);
-  // // Ram 临时实现
-  // RegisterFile ram(
-  //   .clk(clk),
-  //   .raddr(ramReadAddr),
-  //   .rdata(ramReadData),
-  //   .re(ramRe),
-  //   .waddr(ramWriteAddr),
-  //   .wdata(ramWriteData),
-  //   .wmask(ramWriteMask),
-  //   .we(ramWe)
-  // );
+  output ifu_valid_flag,
 
-  // logic [31:0] inst_data;
-  // RegisterFile_ROM rom(
-  //   .clk(clk),
-  //   .re(1'b1),
-  //   .raddr(pc),
-  //   .rdata(inst_data)
-  // );
+  output [1:0] out_top_state, out_ifu_state, out_lsu_state
+);
 
   // =========== 调试接口实现 ===========
   assign inst_valid_flag = |{add_en, addi_en, lui_en, lw_en, lbu_en, sw_en, sb_en, jalr_en, ebreak_en, auipc_en, jal_en,
                              sub_en, sltiu_en, beq_en, bne_en, sltu_en, xor_en, or_en, sh_en, srai_en, andi_en, sll_en, 
                              and_en, xori_en, bge_en, blt_en, srli_en, bgeu_en, slli_en, bltu_en, sra_en, srl_en, lh_en,
                              lhu_en, lb_en, ori_en, slti_en, slt_en, csrrc_en, csrrs_en, csrrw_en, ecall_en, mret_en};
-  assign IFU_valid_flag = ifu2idu_bus.valid;
+  
+  assign out_top_state = top_state;
 
+  // =========== TOP FSM ===========
+  // 目前使用“总控制器”来控制目前的指令执行流程
+  enum logic [1:0] {
+    IDLE,     // IFU PAUSE  
+    MEM_WAIT  // LSU PAUSE
+  } top_state, next_top_state;
+
+  always_ff @(posedge clk or posedge rst) begin
+    if(rst) begin
+      top_state <= IDLE;
+    end else begin
+      top_state <= next_top_state;
+    end
+  end
+
+
+  always_comb begin
+  // 默认保持
+  next_top_state = top_state;
+
+  case (top_state)
+    IDLE: begin
+      if(ifu_will_done) begin // ifu 将会发射
+        if (lsu_will_done)
+          next_top_state = IDLE;
+        else
+          next_top_state = MEM_WAIT;
+      end else begin 
+        next_top_state = IDLE; // 保持等待ifu发射
+      end
+    end
+
+    MEM_WAIT: begin
+      if (lsu_will_done)
+        next_top_state = IDLE;
+      else
+        next_top_state = MEM_WAIT;
+    end
+
+    default: begin
+      next_top_state = IDLE;
+    end
+  endcase
+end
+
+  wire ifu_en, exu_en, lsu_en, wbu_en;
+  wire ifu_will_done, lsu_will_done;
+  // lsu_will_done:
+  // 1: 如果内存操作在本周期发出，结果将在下一周期就绪（或是指令不需要访存）
+  // 0: 必须暂停（进入MEM_WAIT状态）
+
+  // ifu_will_done:
+  // 1: IFU会在本周期发出，结果将在下一周期就绪
+  // 0: IFU将不会发射，需要暂停等待
+
+  assign ifu_en = (top_state == IDLE);
+  assign exu_en = ifu_will_done;
+  assign lsu_en = ifu_will_done | (top_state == MEM_WAIT);
+  assign wbu_en = (is_mem & (top_state == MEM_WAIT) & lsu_will_done) | (~is_mem & ifu_will_done);
   // =========== IFU例化 ===========
   wire [31:0] inst;
-  simple_bus ifu2idu_bus();
+
+  // 总线设置
+  simple_bus_IFU ifu_bus();
+  assign ifu_bus.ifu_raddr = pc;
+  assign inst = ifu_bus.ifu_rdata;
+
   ysyx_25090244_IFU uIFU (
     .clk(clk),
     .rst(rst),
-    .pc(pc),
-    .inst(inst),
+    .bus_in(ifu_bus),
+    .en(ifu_en),
+    .will_done(ifu_will_done),
 
-    .bus_out(ifu2idu_bus)
+    .out_state(out_ifu_state)
   );
+
   assign out_pc = pc;
   
   // =========== PC 寄存器实现 ===========
-  wire  [31:0] pc;
+  wire [31:0] pc;
   wire [31:0] next_pc;
 
   // WBU 输入 至 PC
@@ -88,8 +134,7 @@ module ysyx_25090244_top (
     .rst(rst),
     .next_pc(next_pc),
     .pc(pc),
-
-    .bus_in(wbu2pc_bus)
+    .update_en(wb_pc_en)
   );
 
 
@@ -106,8 +151,7 @@ module ysyx_25090244_top (
   wire [31:0] U_imm;
   wire [20:0] J_imm;
 
-  // 总线连接
-  simple_bus idu2exu_bus();
+  wire is_mem;
 
   ysyx_25090244_IDU uIDU (
     .inst(inst),
@@ -131,8 +175,7 @@ module ysyx_25090244_top (
     .U_imm(U_imm),
     .J_imm(J_imm),
 
-    .bus_in(ifu2idu_bus),
-    .bus_out(idu2exu_bus)
+    .is_mem(is_mem)
   );
 
 
@@ -170,10 +213,6 @@ module ysyx_25090244_top (
   assign ex_rs1_val = reg_addr1_val;
   assign ex_rs2_val = reg_addr2_val;
   
-  // 总线连接
-  simple_bus exu2wbu_bus();
-  simple_bus exu2reg_bus();
-  simple_bus exu2csr_bus();
 
   ysyx_25090244_EXU uEXU (
     .add_en(add_en), .addi_en(addi_en), .lui_en(lui_en), .lw_en(lw_en), .lbu_en(lbu_en),
@@ -217,10 +256,7 @@ module ysyx_25090244_top (
     .csr_waddr1(ex_csr_waddr1),
     .csr_wdata1(ex_csr_wdata1),
 
-    .bus_in(idu2exu_bus),
-    .bus_out2wb(exu2wbu_bus),
-    .bus_out2reg(exu2reg_bus),
-    .bus_out2csr(exu2csr_bus)
+    .en(exu_en)
   );
 
 
@@ -255,9 +291,7 @@ module ysyx_25090244_top (
     .read_addr2(reg_read_addr2),
     .addr2_val(reg_addr2_val),
     .A0_val(A0_val),
-    .reg_val(out_reg),
-
-    .bus_in(exu2reg_bus)
+    .reg_val(out_reg)
   );
 
 
@@ -269,14 +303,14 @@ module ysyx_25090244_top (
   wire [31:0] csr_wdata1;
   wire [11:0] csr_waddr1;
 
-  assign csr_we = wb_csr_we;
-  assign csr_wdata = wb_csr_wdata;
-  assign csr_raddr = wb_csr_raddr;
-  assign csr_waddr = wb_csr_waddr;
+  assign csr_we = ex_csr_we;
+  assign csr_wdata = ex_csr_wdata;
+  assign csr_raddr = ex_csr_raddr;
+  assign csr_waddr = ex_csr_waddr;
 
-  assign csr_we1 = wb_csr_we1;
-  assign csr_wdata1 = wb_csr_wdata1;
-  assign csr_waddr1 = wb_csr_waddr1;
+  assign csr_we1 = ex_csr_we1;
+  assign csr_wdata1 = ex_csr_wdata1;
+  assign csr_waddr1 = ex_csr_waddr1;
 
   ysyx_25090244_RV32_csrs uRV32_csrs (
     .clk(clk),
@@ -292,60 +326,7 @@ module ysyx_25090244_top (
     .we1_in(csr_we1),
     .waddr1(csr_waddr1),
     .wdata1(csr_wdata1),
-    .out_csr(out_csr),
-
-    .bus_in(exu2csr_bus)
-  );
-
-
-  // =========== WBU 例化 ===========
-  wire wb_reg_we;
-  wire [4:0] wb_reg_addr;
-  wire [31:0] wb_reg_data, wb_next_pc;
-
-  wire wb_csr_we;
-  wire [11:0] wb_csr_raddr, wb_csr_waddr;
-  wire [31:0] wb_csr_wdata;
-
-  wire wb_csr_we1;
-  wire [11:0] wb_csr_waddr1;
-  wire [31:0] wb_csr_wdata1;
-
-  simple_bus wbu2pc_bus();
-
-  ysyx_25090244_WBU uWBU (
-    .next_pc_EX(ex_next_pc),
-    .reg_we_EX(ex_reg_we),
-    .reg_addr_EX(ex_reg_addr),
-    .reg_data_EX(ex_reg_data),
-
-    .csr_we_EX(ex_csr_we),
-    .csr_raddr_EX(ex_csr_raddr),
-
-    .csr_waddr_EX(ex_csr_waddr),
-    .csr_wdata_EX(ex_csr_wdata),
-
-    .csr_we1_EX(ex_csr_we1),
-    .csr_waddr1_EX(ex_csr_waddr1),
-    .csr_wdata1_EX(ex_csr_wdata1),
-
-    .reg_we(wb_reg_we),
-    .reg_addr(wb_reg_addr),
-    .reg_data(wb_reg_data),
-    .next_pc(wb_next_pc),
-
-    .csr_we(wb_csr_we),
-    .csr_raddr(wb_csr_raddr),
-
-    .csr_waddr(wb_csr_waddr),
-    .csr_wdata(wb_csr_wdata),
-
-    .csr_we1(wb_csr_we1),
-    .csr_waddr1(wb_csr_waddr1),
-    .csr_wdata1(wb_csr_wdata1),
-
-    .bus_in(exu2wbu_bus),
-    .bus_out(wbu2pc_bus)
+    .out_csr(out_csr)
   );
 
 
@@ -362,10 +343,10 @@ module ysyx_25090244_top (
   wire [31:0] ram_read_addr_Top;
   wire [31:0] ram_read_data_Top;
 
-  simple_bus exu2lsu_bus();
-  // TODO : add LSU connections in EXU and WBU if needed
-
   ysyx_25090244_LSU uLSU (
+    .clk(clk),
+    .rst(rst),
+    
     .ram_we_EX(ex_ram_we),
     .ram_write_addr_EX(ex_ram_write_addr),
     .ram_write_data_EX(ex_ram_write_data),
@@ -384,7 +365,12 @@ module ysyx_25090244_top (
 
     .ram_re_Top(ram_re_Top),
     .ram_read_addr_Top(ram_read_addr_Top),
-    .ram_read_data_Top(ram_read_data_Top)
+    .ram_read_data_Top(ram_read_data_Top),
+
+    .en(lsu_en),
+    .will_done(lsu_will_done),
+
+    .out_state(out_lsu_state)
   );
   
   // =========== RAM 辅助接口处理 ===========
@@ -395,6 +381,28 @@ module ysyx_25090244_top (
 
   assign ramRe = ram_re_Top;
   assign ramReadAddr = ram_read_addr_Top;
-  assign ramReadData = ram_read_data_Top;
+  assign ram_read_data_Top = ramReadData;
   
+
+  // =========== WBU 例化 ===========
+  wire wb_reg_we;
+  wire [4:0] wb_reg_addr;
+  wire [31:0] wb_reg_data, wb_next_pc;
+  wire wb_pc_en;
+
+
+  ysyx_25090244_WBU uWBU (
+    .next_pc_EX(ex_next_pc),
+    .reg_we_EX(ex_reg_we),
+    .reg_addr_EX(ex_reg_addr),
+    .reg_data_EX(ex_reg_data),
+
+    .reg_we(wb_reg_we),
+    .reg_addr(wb_reg_addr),
+    .reg_data(wb_reg_data),
+    .next_pc(wb_next_pc),
+
+    .pc_en(wb_pc_en),
+    .en(wbu_en)
+  );
 endmodule

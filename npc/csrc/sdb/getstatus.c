@@ -12,11 +12,31 @@ void print_all_status() {
 	}
 	printf("PC: 0x%08x\n", dut->out_pc);
 
-	printf(COLOR_DYELLOW "===== Module Status =====\n" COLOR_NONE);
-	printf("IFU Valid: ");
-	if(dut->IFU_valid_flag) {
-		printf(COLOR_GREEN "True\n" COLOR_NONE);
-	} else {
-		printf(COLOR_RED "False\n" COLOR_NONE);
+	printf("TOP Module State: ");
+	switch(dut->out_top_state) {
+		case 0: printf(COLOR_GREEN "IDLE\n" COLOR_NONE); break;
+		case 1: printf(COLOR_YELLOW "MEM_WAIT\n" COLOR_NONE); break;
+
+		default: printf(COLOR_RED "UNKNOWN\n" COLOR_NONE); break;
+	}
+
+	printf("\n");
+	
+	printf(COLOR_DYELLOW "===== Submodules Status =====\n" COLOR_NONE);
+
+	printf("IFU State: ");
+	switch(dut->out_ifu_state) {
+		case 0: printf(COLOR_GREEN "IDLE\n" COLOR_NONE); break;
+		case 1: printf(COLOR_YELLOW "WAIT\n" COLOR_NONE); break;
+
+		default: printf(COLOR_RED "UNKNOWN\n" COLOR_NONE); break;
+	}
+
+	printf("LSU State: ");
+	switch(dut->out_lsu_state) {
+		case 0: printf(COLOR_GREEN "IDLE\n" COLOR_NONE); break;
+		case 1: printf(COLOR_YELLOW "WAIT\n" COLOR_NONE); break;
+
+		default: printf(COLOR_RED "UNKNOWN\n" COLOR_NONE); break;
 	}
 }

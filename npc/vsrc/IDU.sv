@@ -57,13 +57,9 @@ module ysyx_25090244_IDU (
 	output [31:0] U_imm,
 	output [20:0] J_imm,
 
-	// 总线连接
-	simple_bus.slave bus_in,
-	simple_bus.master bus_out
+	output is_mem
 );
-	// 连接总线
-	assign bus_out.valid = bus_in.valid;
-
+	assign is_mem = lw_en | lh_en | lhu_en | lb_en | lbu_en | sw_en | sh_en | sb_en;
 
 	wire [6:0] opcode = inst[6:0];
 	wire [2:0] funct3 = inst[14:12];
@@ -128,5 +124,4 @@ module ysyx_25090244_IDU (
 	assign csrrw_en =  (opcode == 7'b1110011) && (funct3 == 3'b001);
 	assign ecall_en =  (inst == 32'h00000073);
 	assign mret_en =  (inst == 32'h30200073);
-
 endmodule

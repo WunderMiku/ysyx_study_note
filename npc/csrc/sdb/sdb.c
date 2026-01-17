@@ -59,7 +59,7 @@ static int cmd_dx(char* args);
 
 static int cmd_info_diff(char *args);
 
-static int cmd_status(char *args);
+static int cmd_statu(char *args);
 
 static struct {
   const char *name;
@@ -78,7 +78,7 @@ static struct {
   {"d", "delete watchpoint", cmd_d},
   {"b", "set breakpoint", cmd_b},
   {"dx", "scan ref(NEMU) memory", cmd_dx},
-  {"status", "print all modules status", cmd_status}
+  {"statu", "print npc statu", cmd_statu}
 
   /* TODO: Add more commands */
 
@@ -506,7 +506,7 @@ static int cmd_b(char* args) {
   return 0;
 }
 
-static int cmd_status(char *args) {
+static int cmd_statu(char *args) {
   print_all_status();
   return 0;
 }
