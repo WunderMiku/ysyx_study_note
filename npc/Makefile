@@ -36,7 +36,7 @@ $(SRC_AUTO_BIND): $(NXDC_FILES)
 # project source
 CSRCS = $(shell find $(abspath ./csrc) -name "*.c" -or -name "*.cc" -or -name "*.cpp")
 INC_PATH += $(shell find $(NPC_HOME)/include -type d)
-VSRCS := $(wildcard vsrc/*.v) $(wildcard vsrc/*.sv)
+VSRCS := $(shell find $(abspath ./vsrc) -name "*.v" -or -name "*.sv")
 
 # additional libraries
 LDFLAGS += -lreadline

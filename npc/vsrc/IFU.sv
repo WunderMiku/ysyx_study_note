@@ -15,61 +15,118 @@ module ysyx_25090244_IFU (
 	assign out_state = state;
 
 	// ======== FSM 定义 ========
-	enum logic [1:0] {
+	// 1. 需要读写内存时，会进入 WAIT 状态，-+->其中若存储器可以接受请求 -+-> 还没有给出有效结果，则进入WAIT_GET_RESP 状态,
+	//                                  |                        +-> 给出有效响应，则直接回到IDLE 状态。
+	//                                  +--> 若存储器暂时无法接受请求，则进入WAIT_REQ_SEND 状态。
+	// 2. 读写内存完成或者空闲时，会进入 IDLE 状态
+	// 3. 在读写内存操作完成前一周期，会置 will_done 为 1
+	enum logic [1:0]{
 		IDLE,
-		WAIT
-	} state;
+		WAIT_REQ_SEND,
+		WAIT_GET_RESP
+	} state, next_state;
 
-	always_ff @(posedge clk or posedge rst) begin
+	always_ff @(posedge clk) begin
+		state <= next_state;
+	end
+
+	always_comb begin 
 		if(rst) begin
-			state <= IDLE;
+			next_state = IDLE;
 		end else begin
-			case(state)
+			case (state)
 				IDLE: begin
-					if(en) begin
-						state <= WAIT;  // 可以取指
-					end else begin
-						state <= IDLE;
+					if (en) begin // 有访存请求
+						if(respValid) begin
+							next_state = IDLE;  // 理想的无延迟访存
+						end else begin
+							if(reqReady) begin
+								next_state = WAIT_GET_RESP; // 存储器可以接受请求
+							end else begin
+								next_state = WAIT_REQ_SEND; // 存储器不能接受请求
+							end
+						end
+					end else begin  // 无访存请求
+						next_state = IDLE;
 					end
 				end
-				WAIT: begin
-					if(respValid) begin
-						state <= IDLE;  // 完成取指
+
+				WAIT_REQ_SEND: begin
+					if (reqReady) begin
+						next_state = WAIT_GET_RESP;  // 存储器可以接受请求
 					end else begin
-						state <= WAIT;
+						next_state = WAIT_REQ_SEND;  // 存储器依然不能接受请求
 					end
 				end
+
+				WAIT_GET_RESP: begin
+						if (respValid) begin
+							next_state = IDLE;  // 访存完成
+						end else begin
+							next_state = WAIT_GET_RESP;  // 等待存储器返回有效数据
+						end
+					end
+
 				default: begin
-					state <= IDLE;
+					next_state = IDLE;
 				end
 			endcase
 		end
-	end 
-	assign will_done = (state == WAIT) & respValid;
+	end
+
+	assign will_done = en & (next_state == IDLE); // 表示本周期结束后将访存完成
 
 	// simple_bus 其他控制信号
 	wire reqValid = 1'b1;
 	logic respValid;	
 
-	// 对延迟的模拟
-	// 附加延迟周期（delayCycle) 0-255
-	logic [7:0] delay_cycle, delay_counter;
-	// assign delay_cycle = lfsr[7:0];
-	assign delay_cycle = 8'h0;
-	assign respValid = (delay_counter == 8'b0);
+	// reqReady = 1 表示：存储器准备好接受请求
+	// respReady = 1 表示：处理器准备好接受返回响应
+	wire reqReady;
+	wire respReady = 1'b1; // 暂定为始终有效
 
+	logic [7:0] delay_cycle_req, delay_counter_req;
+	// assign delay_cycle_req = lfsr[15:8]; // 模拟一个随机数
+	assign delay_cycle_req = 8'd1;  // 模拟存储器准备接受请求带来的延迟（设置为0，表示无延迟）
+	assign reqReady = (delay_counter_req == 8'b0);
+	
+	// reqReady 模拟
 	always_ff @(posedge clk or posedge rst) begin
 		if (rst) begin
-			delay_counter <= delay_cycle;
+			delay_counter_req <= delay_cycle_req;
 		end else begin
-			if (state == WAIT) begin
-				if (delay_counter >= 8'b1) begin
-					delay_counter <= delay_counter - 1'b1;
+			if (next_state == WAIT_REQ_SEND) begin
+				if (delay_counter_req >= 8'b1) begin
+					delay_counter_req <= delay_counter_req - 1'b1;
 				end else begin
-					delay_counter <= delay_counter;
+					delay_counter_req <= delay_counter_req;
 				end
 			end else begin
-				delay_counter <= delay_cycle;
+				delay_counter_req <= delay_cycle_req;
+			end
+		end
+	end
+
+	// 对延迟的模拟
+	// 附加延迟周期（delay_cycle_resp) 0-255
+	logic [7:0] delay_cycle_resp, delay_counter_resp;
+	// assign delay_cycle_resp = lfsr[7:0]; // 模拟一个随机数
+	assign delay_cycle_resp = 8'd1; // 模拟存储器返回有效数据所需的延迟
+	assign respValid = (delay_counter_resp == 8'b0);
+
+	// respValid 模拟
+	always_ff @(posedge clk or posedge rst) begin
+		if (rst) begin
+			delay_counter_resp <= delay_cycle_resp;
+		end else begin
+			if (next_state == WAIT_GET_RESP) begin
+				if (delay_counter_resp >= 8'b1) begin
+					delay_counter_resp <= delay_counter_resp - 1'b1;
+				end else begin
+					delay_counter_resp <= delay_counter_resp;
+				end
+			end else begin
+				delay_counter_resp <= delay_cycle_resp;
 			end
 		end
 	end

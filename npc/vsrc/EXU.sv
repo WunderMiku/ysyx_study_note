@@ -87,8 +87,13 @@ module ysyx_25090244_EXU (
 	output [31:0] csr_wdata1,
 
 	// TOP 控制使能
-	input en
+	input en,
+
+	// TOP 输出
+	output need_wb
 );
+	// Top 输出
+	assign need_wb = reg_we; // 暂不考虑CSR
 
 	wire csr_we_control, csr_we1_control;
 	assign csr_we = csr_we_control & en; 
@@ -159,6 +164,7 @@ module ysyx_25090244_EXU (
 										(bltu_en & (rs1_val < rs2_val)) ? (pc + imm) :
 									  (ecall_en) ? (csr_rdata) :
 										(mret_en) ? (csr_rdata) :
+										(ebreak_en) ? (pc) :
 									  (pc + 4);
 
 

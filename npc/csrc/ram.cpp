@@ -52,7 +52,12 @@ extern "C" void pmem_write(int waddr, int wdata, char wmask) {
 	uint32_t wdata_ = (current & ~byteMask) | (wdata & byteMask);
 	M[vaddr >> 2] = wdata_;
 #ifdef Mtrace_enable
-	printf(COLOR_MAGENTA "[pmem_write]" COLOR_NONE " [mask : %c] " COLOR_YELLOW "0x%08x" COLOR_NONE " to addr " COLOR_GREEN "0x%08x" COLOR_NONE " at pc = 0x%08x\n", wmask, wdata_, vaddr >> 2, cpu.pc);
+        printf(COLOR_MAGENTA "[pmem_write]" COLOR_NONE
+                             " [mask : %01d%01d%01d%01d] " COLOR_YELLOW
+                             "0x%08x" COLOR_NONE " to addr " COLOR_GREEN
+                             "0x%08x" COLOR_NONE " at pc = 0x%08x\n",
+               (wmask & 0x1), ((wmask & 0x2) >> 1), ((wmask & 0x4) >> 2), ((wmask & 0x8) >> 3),
+               wdata_, vaddr >> 2, cpu.pc);
 #endif
 }
 

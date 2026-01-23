@@ -57,9 +57,13 @@ module ysyx_25090244_IDU (
 	output [31:0] U_imm,
 	output [20:0] J_imm,
 
-	output is_mem
+	output is_mem,
+	output is_load,
+	output is_store
 );
 	assign is_mem = lw_en | lh_en | lhu_en | lb_en | lbu_en | sw_en | sh_en | sb_en;
+	assign is_load = lw_en | lh_en | lhu_en | lb_en | lbu_en;
+	assign is_store = sw_en | sh_en | sb_en;
 
 	wire [6:0] opcode = inst[6:0];
 	wire [2:0] funct3 = inst[14:12];

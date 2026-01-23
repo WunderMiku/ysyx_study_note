@@ -78,7 +78,7 @@ static struct {
   {"d", "delete watchpoint", cmd_d},
   {"b", "set breakpoint", cmd_b},
   {"dx", "scan ref(NEMU) memory", cmd_dx},
-  {"statu", "print npc statu", cmd_statu}
+  {"st", "print npc statu", cmd_statu}
 
   /* TODO: Add more commands */
 

@@ -130,6 +130,7 @@ static bool checkInstVaild() {
 static void execOnce() {
 	// Ram 读写端口数据处理
 	if(dut->ramRe) { // ram读
+		
 		dut->ramReadData = pmem_read(dut->ramReadAddr, 4);
 	}
 
@@ -137,9 +138,11 @@ static void execOnce() {
 		pmem_write(dut->ramWriteAddr, dut->ramWriteData, dut->ramWriteMask);
 	}
 
-	instNum++;
-	if(checkEbreak()) return; // 检测 ebreak 指令
-	if(!checkInstVaild()) return; // 检测 非法/未实现 指令
+	if(dut->inst_done) { // 一条指令结束后
+		instNum++;
+		if(checkEbreak()) return; // 检测 ebreak 指令
+		if(!checkInstVaild()) return; // 检测 非法/未实现 指令
+	}
 
 	// 执行指令
 	singleCycle(dut.get());
@@ -155,24 +158,30 @@ void cpuExec(uint32_t n) {
 		return;
 	}
 	for(int i = 0; i < n; i++) {
-#ifdef Watchpoint_enable
-		check_all_using_wp(); // 基于上一次指令执行结果进行检查
-#endif
-		setInstLog(n);
 		update_cpuState();
 		uint32_t before_pc = dut->out_pc;
 		execOnce();
 
 #ifdef Difftest_enable
-		difftest_step(dut->out_pc, before_pc);
-#endif
-
-#ifdef Ftrace_enable
-		funget_detect(before_pc, dut->out_pc, npcState.inst); 
+		if(dut->inst_done){  // 每条指令结束后
+			difftest_step(dut->out_pc, before_pc);
+		}
+		
 #endif
 		// 执行后异常处理
 		if(npcState.state == NPC_ABORT) ringbuf_print(&inst_ringbuf);
 		if(npcState.state != NPC_RUNNING) break;
+
+		if(dut->inst_done){  // 每条指令结束后
+#ifdef Ftrace_enable
+			funget_detect(before_pc, dut->out_pc, npcState.inst); 
+#endif
+
+#ifdef Watchpoint_enable
+			check_all_using_wp(); // 基于上一次指令执行结果进行检查
+#endif
+			setInstLog(n); // 写入指令日志
+		}
 	}
 	return;
 }

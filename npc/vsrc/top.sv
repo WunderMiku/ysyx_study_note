@@ -32,7 +32,8 @@ module ysyx_25090244_top (
   output inst_valid_flag,
   output ifu_valid_flag,
 
-  output [1:0] out_top_state, out_ifu_state, out_lsu_state
+  output [1:0] out_top_state, out_ifu_state, out_lsu_write_state, out_lsu_read_state,
+  output reg inst_done
 );
 
   // =========== 调试接口实现 ===========
@@ -42,85 +43,152 @@ module ysyx_25090244_top (
                              lhu_en, lb_en, ori_en, slti_en, slt_en, csrrc_en, csrrs_en, csrrw_en, ecall_en, mret_en};
   
   assign out_top_state = top_state;
+  always_ff @(posedge clk) begin
+    if (rst) begin
+      inst_done <= 1'b0;
+    end else begin
+      inst_done <= (top_state == WBU_WAIT) & (top_next_state == IFU_WAIT);
+    end
+  end
 
   // =========== TOP FSM ===========
   // 目前使用“总控制器”来控制目前的指令执行流程
   enum logic [1:0] {
-    IDLE,     // IFU PAUSE  
-    MEM_WAIT  // LSU PAUSE
-  } top_state, next_top_state;
+    IFU_WAIT,
+    EXU_WAIT,
+    LSU_WAIT,
+    WBU_WAIT
+  } top_state, top_next_state;
 
-  always_ff @(posedge clk or posedge rst) begin
+  // 状态转移
+  always_ff @(posedge clk) begin
     if(rst) begin
-      top_state <= IDLE;
+      top_state <= IFU_WAIT;
     end else begin
-      top_state <= next_top_state;
+      top_state <= top_next_state;
     end
   end
 
+  // 辅助控制
+  // 需要保证will_done标志位定义为：will_done == 1 
+  // 后的的第一个clk上升沿时，对应模块完成本次事务。
 
+  wire ifu_will_done, lsu_will_done;
+  wire wbu_will_done = 1'b1; // just for Reg and PC write
+  wire exu_will_done = 1'b1; // just for CSR inst
+  // 状态转移逻辑
   always_comb begin
-  // 默认保持
-  next_top_state = top_state;
+    // 默认值
+    top_next_state = top_state;
 
-  case (top_state)
-    IDLE: begin
-      if(ifu_will_done) begin // ifu 将会发射
-        if (lsu_will_done)
-          next_top_state = IDLE;
-        else
-          next_top_state = MEM_WAIT;
-      end else begin 
-        next_top_state = IDLE; // 保持等待ifu发射
+    case(top_state)
+    IFU_WAIT: begin
+      if(ifu_will_done) begin
+        top_next_state = EXU_WAIT;
+      end else begin
+        top_next_state = IFU_WAIT;
       end
     end
 
-    MEM_WAIT: begin
-      if (lsu_will_done)
-        next_top_state = IDLE;
-      else
-        next_top_state = MEM_WAIT;
+    EXU_WAIT: begin
+      if(exu_will_done) begin
+        if(is_mem) begin
+          top_next_state = LSU_WAIT;
+        end else begin
+          top_next_state = WBU_WAIT;
+        end
+      end else begin
+        top_next_state = EXU_WAIT;
+      end
     end
 
-    default: begin
-      next_top_state = IDLE;
+    LSU_WAIT: begin
+      if(lsu_will_done) begin
+        top_next_state = WBU_WAIT;
+      end else begin
+        top_next_state = LSU_WAIT;
+      end
     end
-  endcase
-end
 
-  wire ifu_en, exu_en, lsu_en, wbu_en;
-  wire ifu_will_done, lsu_will_done;
-  // lsu_will_done:
-  // 1: 如果内存操作在本周期发出，结果将在下一周期就绪（或是指令不需要访存）
-  // 0: 必须暂停（进入MEM_WAIT状态）
+    WBU_WAIT: begin
+      if(wbu_will_done) begin
+        top_next_state = IFU_WAIT;
+      end else begin
+        top_next_state = WBU_WAIT;
+      end
+    end
+    endcase
+  end
 
-  // ifu_will_done:
-  // 1: IFU会在本周期发出，结果将在下一周期就绪
-  // 0: IFU将不会发射，需要暂停等待
 
-  assign ifu_en = (top_state == IDLE);
-  assign exu_en = ifu_will_done;
-  assign lsu_en = ifu_will_done | (top_state == MEM_WAIT);
-  assign wbu_en = (is_mem & (top_state == MEM_WAIT) & lsu_will_done) | (~is_mem & ifu_will_done);
+  reg ifu_en, exu_en, lsu_en, wbu_en;
+	// 使能控制
+	always @(posedge clk) begin
+		if(rst) begin
+			ifu_en <= 1'b0;
+			exu_en <= 1'b0;
+			lsu_en <= 1'b0;
+			wbu_en <= 1'b0;
+		end else begin 
+			case(top_state)
+			IFU_WAIT: begin 
+				if(top_next_state == EXU_WAIT) begin
+					exu_en <= 1'b1;
+					ifu_en <= 1'b0;
+				end else begin // 简单复位
+					ifu_en <= 1'b1;
+					exu_en <= 1'b0; lsu_en <= 1'b0; wbu_en <= 1'b0;
+				end
+			end
+
+			EXU_WAIT: begin 
+				if(top_next_state == LSU_WAIT) begin
+					lsu_en <= 1'b1;
+					exu_en <= 1'b0;
+        end else 
+        if(top_next_state == WBU_WAIT) begin
+          wbu_en <= 1'b1;
+          exu_en <= 1'b0;
+        end
+			end
+
+			LSU_WAIT: begin 
+				if(top_next_state == WBU_WAIT) begin
+					wbu_en <= 1'b1;
+					lsu_en <= 1'b0;
+				end 
+			end
+
+			WBU_WAIT: begin 
+				if(top_next_state == IFU_WAIT) begin
+					ifu_en <= 1'b1;
+					wbu_en <= 1'b0;
+				end
+			end
+			endcase
+		end
+	end
+
+
   // =========== IFU例化 ===========
   wire [31:0] inst;
+  assign out_pc = pc;
 
-  // 总线设置
-  simple_bus_IFU ifu_bus();
-  assign ifu_bus.ifu_raddr = pc;
-  assign inst = ifu_bus.ifu_rdata;
+  axi4_lite_if axi_if_lfu2rom();
+  assign axi_if_lfu2rom.ACLK = clk;
+  assign axi_if_lfu2rom.ARESETn = ~rst;
 
-  ysyx_25090244_IFU uIFU (
-    .clk(clk),
-    .rst(rst),
-    .bus_in(ifu_bus),
+  wire [1:0] ifu_resp;
+
+  axi4_lite_ifu uAXI4_ifu(
+    .axi_if(axi_if_lfu2rom),
     .en(ifu_en),
     .will_done(ifu_will_done),
-
-    .out_state(out_ifu_state)
+    .raddr(pc),
+    .rresp(ifu_resp),
+    .rdata(inst),
+    .ifu_state(out_ifu_state)
   );
-
-  assign out_pc = pc;
   
   // =========== PC 寄存器实现 ===========
   wire [31:0] pc;
@@ -151,7 +219,7 @@ end
   wire [31:0] U_imm;
   wire [20:0] J_imm;
 
-  wire is_mem;
+  wire is_mem, is_load, is_store;
 
   ysyx_25090244_IDU uIDU (
     .inst(inst),
@@ -175,7 +243,9 @@ end
     .U_imm(U_imm),
     .J_imm(J_imm),
 
-    .is_mem(is_mem)
+    .is_mem(is_mem),
+    .is_load(is_load),
+    .is_store(is_store)
   );
 
 
@@ -212,6 +282,9 @@ end
   // 寄存器值输入（rs1 rs2 输入）
   assign ex_rs1_val = reg_addr1_val;
   assign ex_rs2_val = reg_addr2_val;
+
+  // 需要写回
+  wire need_wb;
   
 
   ysyx_25090244_EXU uEXU (
@@ -228,7 +301,7 @@ end
     .rs1_val(ex_rs1_val),
     .rs2_val(ex_rs2_val),
     .rd_addr(rd_addr),
-    .ram_read_val(ramReadData),
+    .ram_read_val(ram_rdata),
     .imm(imm),
     .pc(pc),
     .next_pc(ex_next_pc),
@@ -256,7 +329,8 @@ end
     .csr_waddr1(ex_csr_waddr1),
     .csr_wdata1(ex_csr_wdata1),
 
-    .en(exu_en)
+    .en(exu_en),
+    .need_wb(need_wb)
   );
 
 
@@ -333,56 +407,33 @@ end
   // =========== LSU 例化 ===========
   wire [31:0] ram_read_data;
 
-  // 临时辅助信号
-  wire ram_we_Top;
-  wire [31:0] ram_write_data_Top;
-  wire [31:0] ram_write_addr_Top;
-  wire [3:0]  ram_write_mask_Top;
+  wire [31:0] ram_rdata;
+  wire [1:0] ram_wresp, ram_rresp;
 
-  wire ram_re_Top;
-  wire [31:0] ram_read_addr_Top;
-  wire [31:0] ram_read_data_Top;
+  axi4_lite_if axi_if_lsu2ram();
+  assign axi_if_lsu2ram.ACLK = clk;
+  assign axi_if_lsu2ram.ARESETn = ~rst;
 
-  ysyx_25090244_LSU uLSU (
-    .clk(clk),
-    .rst(rst),
-    
-    .ram_we_EX(ex_ram_we),
-    .ram_write_addr_EX(ex_ram_write_addr),
-    .ram_write_data_EX(ex_ram_write_data),
-    .ram_write_mask_EX(ex_ram_write_mask),
-
-    .ram_re_EX(ex_ram_re),
-    .ram_read_addr_EX(ex_ram_read_addr),
-
-    .ram_read_data(ram_read_data),
-
-    // 临时辅助信号
-    .ram_we_Top(ram_we_Top),
-    .ram_write_data_Top(ram_write_data_Top),
-    .ram_write_addr_Top(ram_write_addr_Top),
-    .ram_write_mask_Top(ram_write_mask_Top),
-
-    .ram_re_Top(ram_re_Top),
-    .ram_read_addr_Top(ram_read_addr_Top),
-    .ram_read_data_Top(ram_read_data_Top),
-
+  axi4_lite_npcside uAXI4_lsu (
+    .axi_if(axi_if_lsu2ram),
     .en(lsu_en),
     .will_done(lsu_will_done),
 
-    .out_state(out_lsu_state)
-  );
-  
-  // =========== RAM 辅助接口处理 ===========
-  assign ramWe = ram_we_Top;
-  assign ramWriteData = ram_write_data_Top;
-  assign ramWriteAddr = ram_write_addr_Top;
-  assign ramWriteMask = ram_write_mask_Top;
+    .is_load(is_load),
+    .is_store(is_store),
+    .raddr(ex_ram_read_addr),
+    .waddr(ex_ram_write_addr),
+    .wdata(ex_ram_write_data),
+    .wstrb(ex_ram_write_mask),
 
-  assign ramRe = ram_re_Top;
-  assign ramReadAddr = ram_read_addr_Top;
-  assign ram_read_data_Top = ramReadData;
-  
+    .wresp(ram_wresp),
+    .rresp(ram_rresp),
+
+    .rdata(ram_rdata),
+    .lsu_wirte_state(out_lsu_write_state),
+    .lsu_read_state(out_lsu_read_state)
+  );
+
 
   // =========== WBU 例化 ===========
   wire wb_reg_we;
@@ -404,5 +455,24 @@ end
 
     .pc_en(wb_pc_en),
     .en(wbu_en)
+  );
+
+
+  // =========== RAM ROM 例化 ===========  
+  RAM uRAM (
+    .axi_if (axi_if_lsu2ram),
+
+    .ramReadData(ramReadData),
+    .ramReadAddr(ramReadAddr),
+    .ramRe(ramRe),
+
+    .ramWriteAddr(ramWriteAddr),
+    .ramWriteData(ramWriteData),
+    .ramWriteMask(ramWriteMask),
+    .ramWe(ramWe)
+  );
+
+  ROM uROM (
+    .axi_if(axi_if_lfu2rom)
   );
 endmodule
