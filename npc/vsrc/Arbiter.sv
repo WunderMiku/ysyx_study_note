@@ -3,7 +3,6 @@ module Arbiter(
 	axi4_lite_if axi_if_b,
 	axi4_lite_if axi_if_out
 );
-
 	// 通道事务发起信号
 	wire channel_a_req = axi_if_a.ar.ARVALID | axi_if_a.aw.AWVALID | axi_if_a.w.WVALID;
 	wire channel_b_req = axi_if_b.ar.ARVALID | axi_if_b.aw.AWVALID | axi_if_b.w.WVALID;
@@ -64,33 +63,9 @@ module Arbiter(
 	always_comb begin
 		case(state)
 			IDLE: begin
-				axi_if_a.aw.AWREADY = 1'b0;
-				axi_if_a.w.WREADY = 1'b0;
-				axi_if_a.b.BVALID = 1'b0;
-				axi_if_a.b.BRESP = 2'b00;
-				axi_if_a.ar.ARREADY = 1'b0;
-				axi_if_a.r.RVALID = 1'b0;
-				axi_if_a.r.RDATA = 32'b0;
-				axi_if_a.r.RRESP = 2'b00;
-
-				axi_if_b.aw.AWREADY = 1'b0;
-				axi_if_b.w.WREADY = 1'b0;
-				axi_if_b.b.BVALID = 1'b0;
-				axi_if_b.b.BRESP = 2'b00;
-				axi_if_b.ar.ARREADY = 1'b0;
-				axi_if_b.r.RVALID = 1'b0;
-				axi_if_b.r.RDATA = 32'b0;
-				axi_if_b.r.RRESP = 2'b00;
-
-				axi_if_out.aw.AWVALID = 1'b0;
-				axi_if_out.aw.AWADDR = 32'b0;
-				axi_if_out.w.WVALID = 1'b0;
-				axi_if_out.w.WDATA = 32'b0;
-				axi_if_out.w.WSTRB = 4'b0;
-				axi_if_out.b.BREADY = 1'b0;
-				axi_if_out.ar.ARVALID = 1'b0;
-				axi_if_out.ar.ARADDR = 32'b0;
-				axi_if_out.r.RREADY = 1'b0;
+				axi_if_a.slave_form_GND();
+				axi_if_b.slave_form_GND();
+				axi_if_out.master_form_GND();
 			end
 
 			Forward_A: begin
@@ -154,33 +129,9 @@ module Arbiter(
 			end
 
 			default: begin
-				axi_if_a.aw.AWREADY = 1'b0;
-				axi_if_a.w.WREADY = 1'b0;
-				axi_if_a.b.BVALID = 1'b0;
-				axi_if_a.b.BRESP = 2'b00;
-				axi_if_a.ar.ARREADY = 1'b0;
-				axi_if_a.r.RVALID = 1'b0;
-				axi_if_a.r.RDATA = 32'b0;
-				axi_if_a.r.RRESP = 2'b00;
-
-				axi_if_b.aw.AWREADY = 1'b0;
-				axi_if_b.w.WREADY = 1'b0;
-				axi_if_b.b.BVALID = 1'b0;
-				axi_if_b.b.BRESP = 2'b00;
-				axi_if_b.ar.ARREADY = 1'b0;
-				axi_if_b.r.RVALID = 1'b0;
-				axi_if_b.r.RDATA = 32'b0;
-				axi_if_b.r.RRESP = 2'b00;
-
-				axi_if_out.aw.AWVALID = 1'b0;
-				axi_if_out.aw.AWADDR = 32'b0;
-				axi_if_out.w.WVALID = 1'b0;
-				axi_if_out.w.WDATA = 32'b0;
-				axi_if_out.w.WSTRB = 4'b0;
-				axi_if_out.b.BREADY = 1'b0;
-				axi_if_out.ar.ARVALID = 1'b0;
-				axi_if_out.ar.ARADDR = 32'b0;
-				axi_if_out.r.RREADY = 1'b0;
+				axi_if_a.slave_form_GND();
+				axi_if_b.slave_form_GND();
+				axi_if_out.master_form_GND();
 			end
 		endcase
 	end

@@ -1,3 +1,84 @@
+// =============== AXI4-Lite Interface ==================
+
+interface axi4_aw_if ();
+  wire AWVALID;
+  wire AWREADY;
+  wire [31:0] AWADDR;
+
+  modport master (
+    output AWVALID,
+    input  AWREADY,
+    output AWADDR
+  );
+endinterface
+
+interface axi4_w_if ();
+  wire WVALID;
+  wire WREADY;
+  wire [31:0] WDATA;
+  wire [3:0] WSTRB;
+endinterface
+
+interface axi4_b_if ();
+  wire BVALID;
+  wire BREADY;
+  wire [1:0] BRESP;
+endinterface
+
+interface axi4_ar_if ();
+  wire ARVALID;
+  wire ARREADY;
+  wire [31:0] ARADDR;
+//	wire [3:0] ARPROT;
+endinterface
+
+interface axi4_r_if ();
+  wire RVALID;
+  wire RREADY;
+  wire [31:0] RDATA;
+  wire [1:0] RRESP;
+endinterface
+
+interface axi4_lite_if ();
+  wire ACLK;
+  wire ARESETn;
+
+  axi4_aw_if aw();
+  axi4_w_if w();
+  axi4_b_if b();
+  axi4_ar_if ar();
+  axi4_r_if r();
+
+
+  // ================= Slave connect to ground =================
+  task automatic slave_form_GND();
+    aw.AWREADY = 1'b0;
+    w.WREADY   = 1'b0;
+    b.BVALID   = 1'b0;
+    b.BRESP    = 2'b00;
+    ar.ARREADY = 1'b0;
+    r.RVALID   = 1'b0;
+    r.RDATA    = '0;
+    r.RRESP    = 2'b00;
+  endtask
+
+  // ================= Master connect to ground =================
+  task automatic master_form_GND();
+    aw.AWVALID = 1'b0;
+    aw.AWADDR  = '0;
+    w.WVALID   = 1'b0;
+    w.WDATA    = '0;
+    w.WSTRB    = '0;
+    b.BREADY   = 1'b0;
+    ar.ARVALID = 1'b0;
+    ar.ARADDR  = '0;
+    r.RREADY   = 1'b0;
+  endtask
+
+
+endinterface // axi4_lite_if
+
+
 package axi4_lite_pkg;
 
 	// =============== AXI4-Lite Master registers ==================
@@ -69,50 +150,3 @@ package axi4_lite_pkg;
 
 endpackage
 
-// =============== AXI4-Lite Interface ==================
-
-interface axi4_aw_if ();
-  wire AWVALID;
-  wire AWREADY;
-  wire [31:0] AWADDR;
-//	wire [3:0] AWPROT;
-endinterface
-
-interface axi4_w_if ();
-  wire WVALID;
-  wire WREADY;
-  wire [31:0] WDATA;
-  wire [3:0] WSTRB;
-endinterface
-
-interface axi4_b_if ();
-  wire BVALID;
-  wire BREADY;
-  wire [1:0] BRESP;
-endinterface
-
-interface axi4_ar_if ();
-  wire ARVALID;
-  wire ARREADY;
-  wire [31:0] ARADDR;
-//	wire [3:0] ARPROT;
-endinterface
-
-interface axi4_r_if ();
-  wire RVALID;
-  wire RREADY;
-  wire [31:0] RDATA;
-  wire [1:0] RRESP;
-endinterface
-
-interface axi4_lite_if ();
-  wire ACLK;
-  wire ARESETn;
-
-  axi4_aw_if aw();
-  axi4_w_if w();
-  axi4_b_if b();
-  axi4_ar_if ar();
-  axi4_r_if r();
-
-endinterface // axi4_lite_if

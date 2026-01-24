@@ -1,15 +1,3 @@
-// =========== 总线实现 ===========
-interface simple_bus_IFU();
-  logic [31:0] ifu_raddr;
-  logic [31:0] ifu_rdata;
-
-  modport IFU_port (
-    input ifu_raddr,
-    output ifu_rdata
-  );
-
-endinterface 
-
 module ysyx_25090244_top (
   input clk,
   input rst,
@@ -30,7 +18,6 @@ module ysyx_25090244_top (
   output [31:0] out_reg [31:0],
   output [31:0] out_csr [3:0],
   output inst_valid_flag,
-  output ifu_valid_flag,
 
   output [1:0] out_top_state, out_ifu_state, out_lsu_write_state, out_lsu_read_state,
   output reg inst_done
@@ -458,20 +445,44 @@ module ysyx_25090244_top (
   );
 
   // ========== Arbiter 例化 ===========
-  axi4_lite_if axi_if_arb2ram();
-  assign axi_if_arb2ram.ACLK = clk;
-  assign axi_if_arb2ram.ARESETn = ~rst;
+  axi4_lite_if axi_if_arb2xbar();
+  assign axi_if_arb2xbar.ACLK = clk;
+  assign axi_if_arb2xbar.ARESETn = ~rst;
 
   Arbiter uArbiter (
     .axi_if_a(axi_if_lfu2rom),
     .axi_if_b(axi_if_lsu2ram),
 
-    .axi_if_out(axi_if_arb2ram)
+    .axi_if_out(axi_if_arb2xbar)
   );
 
-  // =========== RAM ROM 例化 ===========  
+  // =========== Xbar 例化 ===========  
+  axi4_lite_if axi_if_xbar2ram();
+  axi4_lite_if axi_if_xbar2uart();
+
+  assign axi_if_xbar2ram.ACLK = clk;
+  assign axi_if_xbar2ram.ARESETn = ~rst;
+
+  assign axi_if_xbar2uart.ACLK = clk;
+  assign axi_if_xbar2uart.ARESETn = ~rst;
+
+  // just for test
+  assign axi_if_xbar2uart.aw.AWREADY = 1'b1;
+  assign axi_if_xbar2uart.w.WREADY = 1'b1;
+  assign axi_if_xbar2uart.b.BVALID = 1'b1;
+
+
+  Xbar uXbar (
+    .axi_if_in(axi_if_arb2xbar),
+
+    .axi_if_ram(axi_if_xbar2ram),
+    .axi_if_uart(axi_if_xbar2uart)
+  );
+
+
+  // =========== RAM 例化 ===========  
   RAM uRAM (
-    .axi_if (axi_if_arb2ram),
+    .axi_if (axi_if_xbar2ram),
 
     .ramReadData(ramReadData),
     .ramReadAddr(ramReadAddr),
@@ -482,8 +493,4 @@ module ysyx_25090244_top (
     .ramWriteMask(ramWriteMask),
     .ramWe(ramWe)
   );
-
-  // ROM uROM (
-  //   .axi_if(axi_if_lfu2rom)
-  // );
 endmodule
