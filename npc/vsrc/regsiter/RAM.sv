@@ -10,6 +10,24 @@ module RAM (
   output [3:0]  ramWriteMask,
   output ramWe
 );
+	import axi4_lite_pkg::*; // 引入 axi4_lite_pkg 包
+  
+  axi4_lite_Sreg axi_reg; // axi Slave 源寄存器
+
+  // 寄存器连接至 axi_if
+  assign axi_if.aw.AWREADY = axi_reg.aw.AWREADY;
+
+  assign axi_if.w.WREADY = axi_reg.w.WREADY;
+
+  assign axi_if.b.BVALID = axi_reg.b.BVALID;
+  assign axi_if.b.BRESP = axi_reg.b.BRESP;
+
+  assign axi_if.ar.ARREADY = axi_reg.ar.ARREADY;
+
+  assign axi_if.r.RVALID = axi_reg.r.RVALID;
+  assign axi_if.r.RDATA = axi_reg.r.RDATA;
+  assign axi_if.r.RRESP = axi_reg.r.RRESP;
+
   // 写业务
   enum logic [1:0] {
     S_IDLE,
@@ -126,16 +144,16 @@ module RAM (
     case(aw_port_state)
       S_IDLE: begin
         if(aw_port_next_state == S_DONE) begin
-          axi_if.aw.AWREADY <= 1'b0;
+          axi_reg.aw.AWREADY <= 1'b0;
           ramWriteAddr <= axi_if.aw.AWADDR;
         end else begin // 简单复位逻辑
-          axi_if.aw.AWREADY <= 1'b1;
+          axi_reg.aw.AWREADY <= 1'b1;
         end
       end
 
       S_DONE: begin
         if(aw_port_next_state == S_IDLE) begin
-          axi_if.aw.AWREADY <= 1'b1;
+          axi_reg.aw.AWREADY <= 1'b1;
         end
       end
 
@@ -146,17 +164,17 @@ module RAM (
     case(w_port_state)
       S_IDLE: begin
         if(w_port_next_state == S_DONE) begin
-          axi_if.w.WREADY <= 1'b0;
+          axi_reg.w.WREADY <= 1'b0;
           ramWriteMask <= axi_if.w.WSTRB;
           ramWriteData <= axi_if.w.WDATA;
         end else begin // 简单复位逻辑
-          axi_if.w.WREADY <= 1'b1;
+          axi_reg.w.WREADY <= 1'b1;
         end
       end
 
       S_DONE: begin
         if(w_port_next_state == S_IDLE) begin
-          axi_if.w.WREADY <= 1'b1;
+          axi_reg.w.WREADY <= 1'b1;
         end
       end
 
@@ -173,19 +191,19 @@ module RAM (
           ramWe <= 1'b1;
         end else begin  // 简单复位逻辑
           ramWe <= 1'b0;
-          axi_if.b.BVALID <= 1'b0;
+          axi_reg.b.BVALID <= 1'b0;
         end
       end
       W_WAIT_RESP: begin
         if(w_next_state == W_WAIT_B) begin
           ramWe <= 1'b0;
-          axi_if.b.BRESP <= 2'b00; // OKAY
-          axi_if.b.BVALID <= 1'b1;
+          axi_reg.b.BRESP <= 2'b00; // OKAY
+          axi_reg.b.BVALID <= 1'b1;
         end
       end
       W_WAIT_B: begin
         if(w_next_state == W_IDLE) begin
-          axi_if.b.BVALID <= 1'b0;
+          axi_reg.b.BVALID <= 1'b0;
         end
       end
       default: begin
@@ -251,26 +269,26 @@ module RAM (
     case(r_state)
       R_IDLE: begin 
         if(r_next_state == R_WAIT_RESP) begin
-          axi_if.ar.ARREADY <= 1'b0;
+          axi_reg.ar.ARREADY <= 1'b0;
           ramReadAddr <= axi_if.ar.ARADDR;
           ramRe <= 1'b1;
         end else begin // 简单复位逻辑
-          axi_if.ar.ARREADY <= 1'b1;
+          axi_reg.ar.ARREADY <= 1'b1;
           ramRe <= 1'b0;
-          axi_if.r.RVALID <= 1'b0;
+          axi_reg.r.RVALID <= 1'b0;
         end
       end
       R_WAIT_RESP: begin
         if(r_next_state == R_WAIT_R) begin
           ramRe <= 1'b0;
-          axi_if.r.RDATA <= ramReadData;
-          axi_if.r.RRESP <= 2'b00; // OKAY
-          axi_if.r.RVALID <= 1'b1;
+          axi_reg.r.RDATA <= ramReadData;
+          axi_reg.r.RRESP <= 2'b00; // OKAY
+          axi_reg.r.RVALID <= 1'b1;
         end
       end
       R_WAIT_R: begin
         if(r_next_state == R_IDLE) begin
-          axi_if.r.RVALID <= 1'b0;
+          axi_reg.r.RVALID <= 1'b0;
         end
       end
       

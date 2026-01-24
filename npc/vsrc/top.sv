@@ -457,10 +457,21 @@ module ysyx_25090244_top (
     .en(wbu_en)
   );
 
+  // ========== Arbiter 例化 ===========
+  axi4_lite_if axi_if_arb2ram();
+  assign axi_if_arb2ram.ACLK = clk;
+  assign axi_if_arb2ram.ARESETn = ~rst;
+
+  Arbiter uArbiter (
+    .axi_if_a(axi_if_lfu2rom),
+    .axi_if_b(axi_if_lsu2ram),
+
+    .axi_if_out(axi_if_arb2ram)
+  );
 
   // =========== RAM ROM 例化 ===========  
   RAM uRAM (
-    .axi_if (axi_if_lsu2ram),
+    .axi_if (axi_if_arb2ram),
 
     .ramReadData(ramReadData),
     .ramReadAddr(ramReadAddr),
@@ -472,7 +483,7 @@ module ysyx_25090244_top (
     .ramWe(ramWe)
   );
 
-  ROM uROM (
-    .axi_if(axi_if_lfu2rom)
-  );
+  // ROM uROM (
+  //   .axi_if(axi_if_lfu2rom)
+  // );
 endmodule

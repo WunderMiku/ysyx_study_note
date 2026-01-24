@@ -34,9 +34,11 @@ $(SRC_AUTO_BIND): $(NXDC_FILES)
 	python3 $(NVBOARD_HOME)/scripts/auto_pin_bind.py $^ $@
 
 # project source
-CSRCS = $(shell find $(abspath ./csrc) -name "*.c" -or -name "*.cc" -or -name "*.cpp")
+CSRCS = $(shell find $(abspath ./csrc) -name "*.c" -o -name "*.cc" -o -name "*.cpp")
 INC_PATH += $(shell find $(NPC_HOME)/include -type d)
-VSRCS := $(shell find $(abspath ./vsrc) -name "*.v" -or -name "*.sv")
+VPKGS := $(shell find $(abspath ./vsrc) -regex ".*_pkg\.sv")
+VSRCS := $(shell find $(abspath ./vsrc) \( -name "*.v" -o -name "*.sv" \) ! -regex ".*_pkg\.sv")
+
 
 # additional libraries
 LDFLAGS += -lreadline
@@ -62,7 +64,7 @@ $(CSRCS): $(HSRCS)
 	@touch $@ 
 
 # build rules
-$(BIN): $(VSRCS) $(CSRCS) $(NVBOARD_ARCHIVE)
+$(BIN): $(VPKGS) $(VSRCS) $(CSRCS) $(NVBOARD_ARCHIVE)
 	@rm -rf $(OBJ_DIR)
 	@echo "-- Running Verilator --"
 	$(VERILATOR) $(VERILATOR_CFLAGS) \

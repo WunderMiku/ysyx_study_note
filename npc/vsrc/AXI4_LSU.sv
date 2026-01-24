@@ -1,50 +1,3 @@
-interface axi4_aw_if ();
-	logic AWVALID;
-	logic AWREADY;
-	logic [31:0] AWADDR;
-//	logic [3:0] AWPROT;
-endinterface
-
-interface axi4_w_if ();
-	logic WVALID;
-	logic WREADY;
-	logic [31:0] WDATA;
-	logic [3:0] WSTRB;
-endinterface
-
-interface axi4_b_if ();
-	logic BVALID;
-	logic BREADY;
-	logic [1:0] BRESP;
-endinterface
-
-interface axi4_ar_if ();
-	logic ARVALID;
-	logic ARREADY;
-	logic [31:0] ARADDR;
-//	logic [3:0] ARPROT;
-endinterface
-
-interface axi4_r_if ();
-	logic RVALID;
-	logic RREADY;
-	logic [31:0] RDATA;
-	logic [1:0] RRESP;
-endinterface
-
-interface axi4_lite_if ();
-	logic ACLK;
-	logic ARESETn;
-
-	axi4_aw_if aw();
-	axi4_w_if w();
-	axi4_b_if b();
-	axi4_ar_if ar();
-	axi4_r_if r();
-
-endinterface // axi4_lite_if
-
-
 module axi4_lite_npcside (
 	axi4_lite_if axi_if,
 
@@ -64,12 +17,32 @@ module axi4_lite_npcside (
 
 	output [1:0] lsu_wirte_state, lsu_read_state
 );
+	import axi4_lite_pkg::*; // 引入 axi4_lite_pkg 包
+	axi4_lite_Mreg axi_reg; // axi Master 源寄存器
+
+	// 寄存器连接至 axi_if
+	assign axi_if.aw.AWVALID = axi_reg.aw.AWVALID;
+	assign axi_if.aw.AWADDR = axi_reg.aw.AWADDR;
+
+	assign axi_if.w.WVALID = axi_reg.w.WVALID;
+	assign axi_if.w.WDATA = axi_reg.w.WDATA;
+	assign axi_if.w.WSTRB = axi_reg.w.WSTRB;
+
+	assign axi_if.b.BREADY = axi_reg.b.BREADY;
+
+	assign axi_if.ar.ARVALID = axi_reg.ar.ARVALID;
+	assign axi_if.ar.ARADDR = axi_reg.ar.ARADDR;
+
+	assign axi_if.r.RREADY = axi_reg.r.RREADY;
+
+
+	// 一些便利信号
 	assign lsu_wirte_state = w_state;
 	assign lsu_read_state = r_state;
 	assign will_done = (is_load & r_will_done) | (is_store & w_will_done);
 
 	// 写业务
-	enum logic [1:0] { 
+	enum reg [1:0] { 
 		W_IDLE,
 		WAIT_AW,
 		WAIT_W,
@@ -140,42 +113,42 @@ module axi4_lite_npcside (
 		case(w_state) 
 			W_IDLE: begin
 				if(w_next_state == WAIT_AW) begin
-					axi_if.aw.AWVALID <= 1'b1;
-					axi_if.aw.AWADDR <= waddr;
+					axi_reg.aw.AWVALID <= 1'b1;
+					axi_reg.aw.AWADDR <= waddr;
 				end else begin // 简单复位逻辑
-					axi_if.aw.AWVALID <= 1'b0;
-					axi_if.w.WVALID <= 1'b0;
-					axi_if.b.BREADY <= 1'b0;
+					axi_reg.aw.AWVALID <= 1'b0;
+					axi_reg.w.WVALID <= 1'b0;
+					axi_reg.b.BREADY <= 1'b0;
 				end
 			end
 
 			WAIT_AW: begin
 				if(w_next_state == WAIT_W) begin
-					axi_if.aw.AWVALID <= 1'b0;
-					axi_if.w.WVALID <= 1'b1;
-					axi_if.w.WDATA <= wdata;
-					axi_if.w.WSTRB <= wstrb;
+					axi_reg.aw.AWVALID <= 1'b0;
+					axi_reg.w.WVALID <= 1'b1;
+					axi_reg.w.WDATA <= wdata;
+					axi_reg.w.WSTRB <= wstrb;
 				end
 			end
 
 			WAIT_W: begin
 				if(w_next_state == WAIT_B) begin
-					axi_if.w.WVALID <= 1'b0;
-					axi_if.b.BREADY <= 1'b1;
+					axi_reg.w.WVALID <= 1'b0;
+					axi_reg.b.BREADY <= 1'b1;
 				end
 			end
 
 			WAIT_B: begin
 				if(w_next_state == W_IDLE) begin
-					axi_if.b.BREADY <= 1'b0;
+					axi_reg.b.BREADY <= 1'b0;
 					wresp <= axi_if.b.BRESP;
 				end
 			end
 
 			default: begin
-				axi_if.aw.AWVALID <= 1'b0;
-				axi_if.w.WVALID <= 1'b0;
-				axi_if.b.BREADY <= 1'b0;
+				axi_reg.aw.AWVALID <= 1'b0;
+				axi_reg.w.WVALID <= 1'b0;
+				axi_reg.b.BREADY <= 1'b0;
 			end
 		endcase
 	end
@@ -184,7 +157,7 @@ module axi4_lite_npcside (
 	assign w_will_done = (w_state == WAIT_B) & (w_next_state == W_IDLE); 
 
 	// 读业务
-	enum logic [1:0] { 
+	enum reg [1:0] { 
 		R_IDLE,
 		WAIT_AR,
 		WAIT_R
@@ -245,33 +218,32 @@ module axi4_lite_npcside (
 		case(r_state) 
 			R_IDLE: begin
 				if(r_next_state == WAIT_AR) begin
-					axi_if.ar.ARVALID <= 1'b1;
-					axi_if.ar.ARADDR <= raddr;
+					axi_reg.ar.ARVALID <= 1'b1;
+					axi_reg.ar.ARADDR <= raddr;
 				end else begin // 简单复位逻辑
-					axi_if.ar.ARVALID <= 1'b0;
-					axi_if.r.RREADY <= 1'b0;
+					axi_reg.ar.ARVALID <= 1'b0;
+					axi_reg.r.RREADY <= 1'b0;
 				end
 			end
 
 			WAIT_AR: begin
 				if(r_next_state == WAIT_R) begin
-					axi_if.ar.ARVALID <= 1'b0;
-					axi_if.r.RREADY <= 1'b1;
+					axi_reg.ar.ARVALID <= 1'b0;
+					axi_reg.r.RREADY <= 1'b1;
 				end
 			end
 
 			WAIT_R: begin
 				if(r_next_state == R_IDLE) begin
-					axi_if.r.RREADY <= 1'b0;
+					axi_reg.r.RREADY <= 1'b0;
 					rdata <= axi_if.r.RDATA;
 					rresp <= axi_if.r.RRESP;
 				end
 			end
 
-
 			default: begin
-				axi_if.ar.ARVALID <= 1'b0;
-				axi_if.r.RREADY <= 1'b0;
+				axi_reg.ar.ARVALID <= 1'b0;
+				axi_reg.r.RREADY <= 1'b0;
 			end
 		endcase
 	end

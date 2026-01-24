@@ -11,6 +11,25 @@ module axi4_lite_ifu (
 
 	output [1:0] ifu_state
 );
+	import axi4_lite_pkg::*; // 引入 axi4_lite_pkg 包
+	axi4_lite_Mreg axi_reg; // axi Master 源寄存器
+
+	// 寄存器连接至 axi_if
+	assign axi_if.aw.AWVALID = axi_reg.aw.AWVALID;
+	assign axi_if.aw.AWADDR = axi_reg.aw.AWADDR;
+
+	assign axi_if.w.WVALID = axi_reg.w.WVALID;
+	assign axi_if.w.WDATA = axi_reg.w.WDATA;
+	assign axi_if.w.WSTRB = axi_reg.w.WSTRB;
+
+	assign axi_if.b.BREADY = axi_reg.b.BREADY;
+
+	assign axi_if.ar.ARVALID = axi_reg.ar.ARVALID;
+	assign axi_if.ar.ARADDR = axi_reg.ar.ARADDR;
+
+	assign axi_if.r.RREADY = axi_reg.r.RREADY;
+
+
 	assign ifu_state = r_state;
 	assign will_done = en & r_will_done;
 
@@ -76,33 +95,32 @@ module axi4_lite_ifu (
 		case(r_state) 
 			R_IDLE: begin
 				if(r_next_state == WAIT_AR) begin
-					axi_if.ar.ARVALID <= 1'b1;
-					axi_if.ar.ARADDR <= raddr;
+					axi_reg.ar.ARVALID <= 1'b1;
+					axi_reg.ar.ARADDR <= raddr;
 				end else begin // 简单复位逻辑
-					axi_if.ar.ARVALID <= 1'b0;
-					axi_if.r.RREADY <= 1'b0;
+					axi_reg.ar.ARVALID <= 1'b0;
+					axi_reg.r.RREADY <= 1'b0;
 				end
 			end
 
 			WAIT_AR: begin
 				if(r_next_state == WAIT_R) begin
-					axi_if.ar.ARVALID <= 1'b0;
-					axi_if.r.RREADY <= 1'b1;
+					axi_reg.ar.ARVALID <= 1'b0;
+					axi_reg.r.RREADY <= 1'b1;
 				end
 			end
 
 			WAIT_R: begin
 				if(r_next_state == R_IDLE) begin
-					axi_if.r.RREADY <= 1'b0;
+					axi_reg.r.RREADY <= 1'b0;
 					rdata <= axi_if.r.RDATA;
 					rresp <= axi_if.r.RRESP;
 				end
 			end
 
-
 			default: begin
-				axi_if.ar.ARVALID <= 1'b0;
-				axi_if.r.RREADY <= 1'b0;
+				axi_reg.ar.ARVALID <= 1'b0;
+				axi_reg.r.RREADY <= 1'b0;
 			end
 		endcase
 	end

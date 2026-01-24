@@ -1,6 +1,24 @@
 module ROM (
 	axi4_lite_if axi_if
 );
+	import axi4_lite_pkg::*; // 引入 axi4_lite_pkg 包
+  
+  axi4_lite_Sreg axi_reg; // axi Slave 源寄存器
+
+  // 寄存器连接至 axi_if
+  assign axi_if.aw.AWREADY = axi_reg.aw.AWREADY;
+
+  assign axi_if.w.WREADY = axi_reg.w.WREADY;
+
+  assign axi_if.b.BVALID = axi_reg.b.BVALID;
+  assign axi_if.b.BRESP = axi_reg.b.BRESP;
+
+  assign axi_if.ar.ARREADY = axi_reg.ar.ARREADY;
+
+  assign axi_if.r.RVALID = axi_reg.r.RVALID;
+  assign axi_if.r.RDATA = axi_reg.r.RDATA;
+  assign axi_if.r.RRESP = axi_reg.r.RRESP;
+
 	// 读业务
   enum logic [1:0] {
     R_IDLE,
@@ -58,26 +76,26 @@ module ROM (
     case(r_state)
       R_IDLE: begin 
         if(r_next_state == R_WAIT_RESP) begin
-          axi_if.ar.ARREADY <= 1'b0;
+          axi_reg.ar.ARREADY <= 1'b0;
           ramReadAddr <= axi_if.ar.ARADDR;
           ramRe <= 1'b1;
         end else begin // 简单复位逻辑
-          axi_if.ar.ARREADY <= 1'b1;
+          axi_reg.ar.ARREADY <= 1'b1;
           ramRe <= 1'b0;
-          axi_if.r.RVALID <= 1'b0;
+          axi_reg.r.RVALID <= 1'b0;
         end
       end
       R_WAIT_RESP: begin
         if(r_next_state == R_WAIT_R) begin
           ramRe <= 1'b0;
-          axi_if.r.RDATA <= ramReadData;
-          axi_if.r.RRESP <= 2'b00; // OKAY
-          axi_if.r.RVALID <= 1'b1;
+          axi_reg.r.RDATA <= ramReadData;
+          axi_reg.r.RRESP <= 2'b00; // OKAY
+          axi_reg.r.RVALID <= 1'b1;
         end
       end
       R_WAIT_R: begin
         if(r_next_state == R_IDLE) begin
-          axi_if.r.RVALID <= 1'b0;
+          axi_reg.r.RVALID <= 1'b0;
         end
       end
       
