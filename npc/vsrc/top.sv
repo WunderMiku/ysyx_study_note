@@ -459,6 +459,7 @@ module ysyx_25090244_top (
   // =========== Xbar 例化 ===========  
   axi4_lite_if axi_if_xbar2ram();
   axi4_lite_if axi_if_xbar2uart();
+  axi4_lite_if axi_if_xbar2clint();
 
   assign axi_if_xbar2ram.ACLK = clk;
   assign axi_if_xbar2ram.ARESETn = ~rst;
@@ -466,17 +467,21 @@ module ysyx_25090244_top (
   assign axi_if_xbar2uart.ACLK = clk;
   assign axi_if_xbar2uart.ARESETn = ~rst;
 
+  assign axi_if_xbar2clint.ACLK = clk;
+  assign axi_if_xbar2clint.ARESETn = ~rst;
+
   // just for test
-  assign axi_if_xbar2uart.aw.AWREADY = 1'b1;
-  assign axi_if_xbar2uart.w.WREADY = 1'b1;
-  assign axi_if_xbar2uart.b.BVALID = 1'b1;
+  // assign axi_if_xbar2uart.aw.AWREADY = 1'b1;
+  // assign axi_if_xbar2uart.w.WREADY = 1'b1;
+  // assign axi_if_xbar2uart.b.BVALID = 1'b1;
 
 
   Xbar uXbar (
     .axi_if_in(axi_if_arb2xbar),
 
     .axi_if_ram(axi_if_xbar2ram),
-    .axi_if_uart(axi_if_xbar2uart)
+    .axi_if_uart(axi_if_xbar2uart),
+    .axi_if_clint(axi_if_xbar2clint)
   );
 
 
@@ -492,5 +497,15 @@ module ysyx_25090244_top (
     .ramWriteData(ramWriteData),
     .ramWriteMask(ramWriteMask),
     .ramWe(ramWe)
+  );
+
+  // =========== UART 例化 ===========
+  UART uUART (
+    .axi_if(axi_if_xbar2uart)
+  );
+
+  // =========== CLINT 例化 ===========
+  CLINT uCLINT (
+    .axi_if(axi_if_xbar2clint)
   );
 endmodule

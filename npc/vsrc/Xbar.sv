@@ -2,7 +2,8 @@ module Xbar (
 	axi4_lite_if axi_if_in,
 
 	axi4_lite_if axi_if_ram,
-	axi4_lite_if axi_if_uart
+	axi4_lite_if axi_if_uart,
+	axi4_lite_if axi_if_clint
 );
 	// Xbar, 这里因为LSU的钦定固定写操作流程，这里可以设计比较简单（也就意味着并不是很符合AXI4-Lite标准，但如果一方满足AXI4-Lite标准，那么Xbar也可以正常运行）
 	// 通道事务发起信号
@@ -12,10 +13,11 @@ module Xbar (
 	// 通道事务完成信号
 	wire in_done = (axi_if_in.r.RVALID & axi_if_in.r.RREADY) | (axi_if_in.b.BVALID & axi_if_in.b.BREADY);
 
-	enum logic [1:0] {
+	enum logic [2:0] {
 		IDLE,
 		Forward_Ram,
 		Forward_Uart,
+		Forward_Clint,
 		Decerr
 	} state, next_state;
 
@@ -34,13 +36,15 @@ module Xbar (
 		case(state) 
 			IDLE: begin
 				if (in_wreq | in_rreq) begin
-					if ((req_addr >= 32'h8000_0000) & (req_addr <= 32'h8800_0000)) begin
-						next_state = Forward_Ram;
-					end else begin
-						if (req_addr == 32'h1000_0000) begin
-							next_state = Forward_Uart;
+					if (in_wreq || in_rreq) begin
+						if (req_addr >= 32'h8000_0000 && req_addr <= 32'h8800_0000) begin
+								next_state = Forward_Ram;
+						end else if (req_addr == 32'h1000_0000) begin
+								next_state = Forward_Uart;
+						end else if (req_addr >= 32'h0200_0000 && req_addr <= 32'h0200_BFFF) begin
+								next_state = Forward_Clint;
 						end else begin
-							next_state = Decerr;
+								next_state = Decerr;
 						end
 					end
 				end else begin
@@ -64,6 +68,22 @@ module Xbar (
 				end
 			end
 
+			Decerr: begin
+				if (in_done) begin
+					next_state = IDLE;
+				end else begin
+					next_state = Decerr;
+				end
+			end
+
+			Forward_Clint: begin
+				if (in_done) begin
+					next_state = IDLE;
+				end else begin
+					next_state = Forward_Clint;
+				end
+			end
+
 			default: begin
 				next_state = IDLE;
 			end
@@ -71,11 +91,14 @@ module Xbar (
 	end
 
 	always_comb begin
+		// 默认信号
+		axi_if_in.slave_form_GND();
+		axi_if_uart.master_form_GND();
+		axi_if_ram.master_form_GND();
+		axi_if_clint.master_form_GND();
+
 		case(state)
 			IDLE: begin
-				axi_if_in.slave_form_GND();
-				axi_if_ram.master_form_GND();
-				axi_if_uart.master_form_GND();
 			end
 
 			Forward_Ram: begin 
@@ -97,8 +120,6 @@ module Xbar (
 				axi_if_ram.ar.ARVALID = axi_if_in.ar.ARVALID;
 				axi_if_ram.ar.ARADDR = axi_if_in.ar.ARADDR;
 				axi_if_ram.r.RREADY = axi_if_in.r.RREADY;
-
-				axi_if_uart.master_form_GND();
 			end
 
 			Forward_Uart: begin
@@ -120,8 +141,27 @@ module Xbar (
 				axi_if_uart.ar.ARVALID = axi_if_in.ar.ARVALID;
 				axi_if_uart.ar.ARADDR = axi_if_in.ar.ARADDR;
 				axi_if_uart.r.RREADY = axi_if_in.r.RREADY;
+			end
 
-				axi_if_ram.master_form_GND();
+			Forward_Clint: begin 
+				axi_if_in.aw.AWREADY = axi_if_clint.aw.AWREADY;
+				axi_if_in.w.WREADY = axi_if_clint.w.WREADY;
+				axi_if_in.b.BVALID = axi_if_clint.b.BVALID;
+				axi_if_in.b.BRESP = axi_if_clint.b.BRESP;
+				axi_if_in.ar.ARREADY = axi_if_clint.ar.ARREADY;
+				axi_if_in.r.RVALID = axi_if_clint.r.RVALID;
+				axi_if_in.r.RDATA = axi_if_clint.r.RDATA;
+				axi_if_in.r.RRESP = axi_if_clint.r.RRESP;
+
+				axi_if_clint.aw.AWVALID = axi_if_in.aw.AWVALID;
+				axi_if_clint.aw.AWADDR = axi_if_in.aw.AWADDR;
+				axi_if_clint.w.WVALID = axi_if_in.w.WVALID;
+				axi_if_clint.w.WDATA = axi_if_in.w.WDATA;
+				axi_if_clint.w.WSTRB = axi_if_in.w.WSTRB;
+				axi_if_clint.b.BREADY = axi_if_in.b.BREADY;
+				axi_if_clint.ar.ARVALID = axi_if_in.ar.ARVALID;
+				axi_if_clint.ar.ARADDR = axi_if_in.ar.ARADDR;
+				axi_if_clint.r.RREADY = axi_if_in.r.RREADY;
 			end
 
 			Decerr: begin
@@ -136,9 +176,6 @@ module Xbar (
 			end
 
 			default: begin
-				axi_if_in.slave_form_GND();
-				axi_if_uart.master_form_GND();
-				axi_if_ram.master_form_GND();
 			end
 		endcase
 	end

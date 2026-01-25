@@ -142,6 +142,13 @@ module axi4_lite_npcside (
 				if(w_next_state == W_IDLE) begin
 					axi_reg.b.BREADY <= 1'b0;
 					wresp <= axi_if.b.BRESP;
+					// test
+					if(axi_if.b.BRESP == 2'b10) begin
+						$write("[AXI4_LSU] Write Error [SLVERR]\n");
+					end else 
+					if(axi_if.b.BRESP == 2'b11) begin
+						$write("[AXI4_LSU] Write Error [DECERR]\n");
+					end
 				end
 			end
 
@@ -238,6 +245,12 @@ module axi4_lite_npcside (
 					axi_reg.r.RREADY <= 1'b0;
 					rdata <= axi_if.r.RDATA;
 					rresp <= axi_if.r.RRESP;
+					if(axi_if.r.RRESP == 2'b10) begin
+						$write("[AXI4_LSU] Read Error [SLVERR]\n");
+					end else
+					if(axi_if.r.RRESP == 2'b11) begin
+						$write("[AXI4_LSU] Read Error [DECERR]\n");
+					end
 				end
 			end
 

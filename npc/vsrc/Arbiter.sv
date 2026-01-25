@@ -61,11 +61,14 @@ module Arbiter(
 	end
 
 	always_comb begin
+		
+		// 默认信号
+		axi_if_a.slave_form_GND();
+		axi_if_b.slave_form_GND();
+		axi_if_out.master_form_GND();
+
 		case(state)
 			IDLE: begin
-				axi_if_a.slave_form_GND();
-				axi_if_b.slave_form_GND();
-				axi_if_out.master_form_GND();
 			end
 
 			Forward_A: begin
@@ -78,14 +81,7 @@ module Arbiter(
 				axi_if_a.r.RDATA = axi_if_out.r.RDATA;
 				axi_if_a.r.RRESP = axi_if_out.r.RRESP;
 
-				axi_if_b.aw.AWREADY = 1'b0;
-				axi_if_b.w.WREADY = 1'b0;
-				axi_if_b.b.BVALID = 1'b0;
-				axi_if_b.b.BRESP = 2'b00;
-				axi_if_b.ar.ARREADY = 1'b0;
-				axi_if_b.r.RVALID = 1'b0;
-				axi_if_b.r.RDATA = 32'b0;
-				axi_if_b.r.RRESP = 2'b00;
+				axi_if_b.slave_form_GND();
 
 				axi_if_out.aw.AWVALID = axi_if_a.aw.AWVALID;
 				axi_if_out.aw.AWADDR = axi_if_a.aw.AWADDR;
@@ -99,14 +95,7 @@ module Arbiter(
 			end
 
 			Forward_B: begin 
-				axi_if_a.aw.AWREADY = 1'b0;
-				axi_if_a.w.WREADY = 1'b0;
-				axi_if_a.b.BVALID = 1'b0;
-				axi_if_a.b.BRESP = 2'b00;
-				axi_if_a.ar.ARREADY = 1'b0;
-				axi_if_a.r.RVALID = 1'b0;
-				axi_if_a.r.RDATA = 32'b0;
-				axi_if_a.r.RRESP = 2'b00;
+				axi_if_a.slave_form_GND();
 
 				axi_if_b.aw.AWREADY = axi_if_out.aw.AWREADY;
 				axi_if_b.w.WREADY = axi_if_out.w.WREADY;
@@ -129,9 +118,6 @@ module Arbiter(
 			end
 
 			default: begin
-				axi_if_a.slave_form_GND();
-				axi_if_b.slave_form_GND();
-				axi_if_out.master_form_GND();
 			end
 		endcase
 	end
