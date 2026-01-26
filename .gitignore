@@ -1,11 +1,12 @@
 *.*
 *
 !*/
-!/nemu/*
+!/nemu/**/*
 !/nexus-am/*
 !/nanos-lite/*
 !/navy-apps/*
-!/npc/*
+!/npc/**/*
+!/npc-ysyxSoC/**/*
 !Makefile
 !README.md
 !.gitignore
@@ -14,5 +15,9 @@
 /am-kernels
 /nvboard
 /rt-thread-am
+/ysyxSoC
+build/
+**/build/
+**/.cache/
 
 
