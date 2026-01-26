@@ -128,7 +128,7 @@ module CLINT(
 		end else
 		if (r_state == R_WAIT_RESP) begin
 			if(raddr == `MTIME_LOW) begin
-				// $write("mtime_low: %x\n", mtime[31:0]);
+				//$write("mtime_low: %x\n", mtime[31:0]);
 				rdata <= mtime[31:0];
 				read_data_done <= 1'b1;
 				rresp <= `RESP_OKAY;

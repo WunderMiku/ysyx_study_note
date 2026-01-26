@@ -1,126 +1,42 @@
-module ysyx_25090244 (
-  // 时钟与复位
-  input        clock,
-  input        reset,           // 高电平有效
-  input        io_interrupt,    // 外部中断
+module ysyx_25090244_top (
+  input clk,
+  input rst,
+  output [31:0] A0,
 
-  // AXI4 Master接口
-  input         io_master_awready,
-  output        io_master_awvalid,
-  output [31:0] io_master_awaddr,
-  output [3:0]  io_master_awid,
-  output [7:0]  io_master_awlen,
-  output [2:0]  io_master_awsize,
-  output [1:0]  io_master_awburst,
+  // Ram 接口
+  input reg [31:0] ramReadData,
+  output [31:0] ramReadAddr,
+  output ramRe,
 
-  input         io_master_wready,
-  output        io_master_wvalid,
-  output [31:0] io_master_wdata,
-  output [3:0]  io_master_wstrb,
-  output        io_master_wlast,
+  output [31:0] ramWriteAddr,
+  output [31:0] ramWriteData,
+  output [3:0]  ramWriteMask,
+  output ramWe,
 
-  output        io_master_bready,
-  input         io_master_bvalid,
-  input  [1:0]  io_master_bresp,
-  input  [3:0]  io_master_bid,
+  // 调试接口
+  output [31:0] out_pc,
+  output [31:0] out_reg [31:0],
+  output [31:0] out_csr [3:0],
+  output inst_valid_flag,
 
-  input         io_master_arready,
-  output        io_master_arvalid,
-  output [31:0] io_master_araddr,
-  output [3:0]  io_master_arid,
-  output [7:0]  io_master_arlen,
-  output [2:0]  io_master_arsize,
-  output [1:0]  io_master_arburst,
-
-  output        io_master_rready,
-  input         io_master_rvalid,
-  input  [1:0]  io_master_rresp,
-  input  [31:0] io_master_rdata,
-  input         io_master_rlast,
-  input  [3:0]  io_master_rid,
-
-  // AXI4 Slave接口
-  output        io_slave_awready,
-  input         io_slave_awvalid,
-  input  [31:0] io_slave_awaddr,
-  input  [3:0]  io_slave_awid,
-  input  [7:0]  io_slave_awlen,
-  input  [2:0]  io_slave_awsize,
-  input  [1:0]  io_slave_awburst,
-
-  output        io_slave_wready,
-  input         io_slave_wvalid,
-  input  [31:0] io_slave_wdata,
-  input  [3:0]  io_slave_wstrb,
-  input         io_slave_wlast,
-
-  input         io_slave_bready,
-  output        io_slave_bvalid,
-  output [1:0]  io_slave_bresp,
-  output [3:0]  io_slave_bid,
-
-  output        io_slave_arready,
-  input         io_slave_arvalid,
-  input  [31:0] io_slave_araddr,
-  input  [3:0]  io_slave_arid,
-  input  [7:0]  io_slave_arlen,
-  input  [2:0]  io_slave_arsize,
-  input  [1:0]  io_slave_arburst,
-
-  input         io_slave_rready,
-  output        io_slave_rvalid,
-  output [1:0]  io_slave_rresp,
-  output [31:0] io_slave_rdata,
-  output        io_slave_rlast,
-  output [3:0]  io_slave_rid
+  output [1:0] out_top_state, out_ifu_state, out_lsu_write_state, out_lsu_read_state,
+  output reg inst_done
 );
 
-  // Master 接口处理
-  assign axi_if_arb2top.aw.AWREADY = io_master_awready;
-  assign io_master_awvalid = axi_if_arb2top.aw.AWVALID;
-  assign io_master_awaddr = axi_if_arb2top.aw.AWADDR;
-  assign io_master_awid = 4'b0; // 默认为0
-  assign io_master_awlen = 8'b0; // 默认长度为1
-  assign io_master_awsize = 3'b010; // 默认为4字节
-  assign io_master_awburst = 2'b01; // 默认为 INCR
-
-  assign axi_if_arb2top.w.WREADY = io_master_wready;
-  assign io_master_wvalid = axi_if_arb2top.w.WVALID;
-  assign io_master_wdata = axi_if_arb2top.w.WDATA;
-  assign io_master_wstrb = axi_if_arb2top.w.WSTRB;
-  assign io_master_wlast = 1'b1; // 每次都是最后一次传输
-
-  assign io_master_bready = axi_if_arb2top.b.BREADY;
-  assign axi_if_arb2top.b.BVALID = io_master_bvalid;
-  assign axi_if_arb2top.b.BRESP = io_master_bresp;
-  // BID 暂时不使用
-
-  // Slave 接口处理 (目前仅处理一下输出的端口，输出0就行)
-  assign io_slave_awready = 1'b0;
-
-  assign io_slave_wready = 1'b0;
-
-  assign io_slave_bvalid = 1'b0;
-  assign io_slave_bresp = 2'b00;
-  assign io_slave_bid = 4'b0;
-
-  assign io_slave_arready = 1'b0;
-
-
   // =========== 调试接口实现 ===========
-  // assign inst_valid_flag = |{add_en, addi_en, lui_en, lw_en, lbu_en, sw_en, sb_en, jalr_en, ebreak_en, auipc_en, jal_en,
-  //                            sub_en, sltiu_en, beq_en, bne_en, sltu_en, xor_en, or_en, sh_en, srai_en, andi_en, sll_en, 
-  //                            and_en, xori_en, bge_en, blt_en, srli_en, bgeu_en, slli_en, bltu_en, sra_en, srl_en, lh_en,
-  //                            lhu_en, lb_en, ori_en, slti_en, slt_en, csrrc_en, csrrs_en, csrrw_en, ecall_en, mret_en};
+  assign inst_valid_flag = |{add_en, addi_en, lui_en, lw_en, lbu_en, sw_en, sb_en, jalr_en, ebreak_en, auipc_en, jal_en,
+                             sub_en, sltiu_en, beq_en, bne_en, sltu_en, xor_en, or_en, sh_en, srai_en, andi_en, sll_en, 
+                             and_en, xori_en, bge_en, blt_en, srli_en, bgeu_en, slli_en, bltu_en, sra_en, srl_en, lh_en,
+                             lhu_en, lb_en, ori_en, slti_en, slt_en, csrrc_en, csrrs_en, csrrw_en, ecall_en, mret_en};
   
-  // assign out_top_state = top_state;
-  // always_ff @(posedge clock) begin
-  //   if (reset) begin
-  //     inst_done <= 1'b0;
-  //   end else begin
-  //     inst_done <= (top_state == WBU_WAIT) & (top_next_state == IFU_WAIT);
-  //   end
-  // end
+  assign out_top_state = top_state;
+  always_ff @(posedge clk) begin
+    if (rst) begin
+      inst_done <= 1'b0;
+    end else begin
+      inst_done <= (top_state == WBU_WAIT) & (top_next_state == IFU_WAIT);
+    end
+  end
 
   // =========== TOP FSM ===========
   // 目前使用“总控制器”来控制目前的指令执行流程
@@ -132,8 +48,8 @@ module ysyx_25090244 (
   } top_state, top_next_state;
 
   // 状态转移
-  always_ff @(posedge clock) begin
-    if(reset) begin
+  always_ff @(posedge clk) begin
+    if(rst) begin
       top_state <= IFU_WAIT;
     end else begin
       top_state <= top_next_state;
@@ -194,8 +110,8 @@ module ysyx_25090244 (
 
   reg ifu_en, exu_en, lsu_en, wbu_en;
 	// 使能控制
-	always @(posedge clock) begin
-		if(reset) begin
+	always @(posedge clk) begin
+		if(rst) begin
 			ifu_en <= 1'b0;
 			exu_en <= 1'b0;
 			lsu_en <= 1'b0;
@@ -243,14 +159,13 @@ module ysyx_25090244 (
 
   // =========== IFU例化 ===========
   wire [31:0] inst;
-  // assign out_pc = pc;
+  assign out_pc = pc;
 
   axi4_lite_if axi_if_lfu2rom();
-  assign axi_if_lfu2rom.ACLK = clock;
-  assign axi_if_lfu2rom.ARESETn = ~reset;
+  assign axi_if_lfu2rom.ACLK = clk;
+  assign axi_if_lfu2rom.ARESETn = ~rst;
 
   wire [1:0] ifu_resp;
-  wire [1:0] out_ifu_state;
 
   axi4_lite_ifu uAXI4_ifu(
     .axi_if(axi_if_lfu2rom),
@@ -270,8 +185,8 @@ module ysyx_25090244 (
   assign next_pc = wb_next_pc;
 
   ysyx_25090244_PC uPC (
-    .clk(clock),
-    .rst(reset),
+    .clk(clk),
+    .rst(rst),
     .next_pc(next_pc),
     .pc(pc),
     .update_en(wb_pc_en)
@@ -412,10 +327,9 @@ module ysyx_25090244 (
 
   wire [31:0] reg_write_val, reg_addr1_val, reg_addr2_val;
 
-  // // A0 输出
-  // assign A0 = A0_val;
+  // A0 输出
+  assign A0 = A0_val;
   wire [31:0] A0_val;
-  wire [31:0] out_reg [31:0];
 
   // WBU 输入 至 写端口
   assign reg_write_ena = wb_reg_we;
@@ -427,7 +341,7 @@ module ysyx_25090244 (
   assign reg_read_addr2 = rs2_addr;
   
   ysyx_25090244_RV32_regs uRV32_regs (
-    .clk(clock),
+    .clk(clk),
     .write_ena_in(reg_write_ena),
     .write_addr(reg_write_addr),
     .write_val(reg_write_val),
@@ -459,11 +373,9 @@ module ysyx_25090244 (
   assign csr_wdata1 = ex_csr_wdata1;
   assign csr_waddr1 = ex_csr_waddr1;
 
-  wire [31:0] out_csr [3:0];
-
   ysyx_25090244_RV32_csrs uRV32_csrs (
-    .clk(clock),
-    .rst(reset),
+    .clk(clk),
+    .rst(rst),
     
     .we_in(csr_we),
     .waddr(csr_waddr),
@@ -486,10 +398,8 @@ module ysyx_25090244 (
   wire [1:0] ram_wresp, ram_rresp;
 
   axi4_lite_if axi_if_lsu2ram();
-  assign axi_if_lsu2ram.ACLK = clock;
-  assign axi_if_lsu2ram.ARESETn = ~reset;
-
-  wire [1:0] out_lsu_write_state, out_lsu_read_state;
+  assign axi_if_lsu2ram.ACLK = clk;
+  assign axi_if_lsu2ram.ARESETn = ~rst;
 
   axi4_lite_npcside uAXI4_lsu (
     .axi_if(axi_if_lsu2ram),
@@ -535,61 +445,67 @@ module ysyx_25090244 (
   );
 
   // ========== Arbiter 例化 ===========
-  axi4_lite_if axi_if_arb2top();
-  assign axi_if_arb2top.ACLK = clock;
-  assign axi_if_arb2top.ARESETn = ~reset;
+  axi4_lite_if axi_if_arb2xbar();
+  assign axi_if_arb2xbar.ACLK = clk;
+  assign axi_if_arb2xbar.ARESETn = ~rst;
 
   Arbiter uArbiter (
     .axi_if_a(axi_if_lfu2rom),
     .axi_if_b(axi_if_lsu2ram),
 
-    .axi_if_out(axi_if_arb2top)
+    .axi_if_out(axi_if_arb2xbar)
   );
 
-  // // =========== Xbar 例化 ===========  
-  // axi4_lite_if axi_if_xbar2ram();
-  // axi4_lite_if axi_if_xbar2uart();
-  // axi4_lite_if axi_if_xbar2clint();
+  // =========== Xbar 例化 ===========  
+  axi4_lite_if axi_if_xbar2ram();
+  axi4_lite_if axi_if_xbar2uart();
+  axi4_lite_if axi_if_xbar2clint();
 
-  // assign axi_if_xbar2ram.ACLK = clock;
-  // assign axi_if_xbar2ram.ARESETn = ~reset;
+  assign axi_if_xbar2ram.ACLK = clk;
+  assign axi_if_xbar2ram.ARESETn = ~rst;
 
-  // assign axi_if_xbar2uart.ACLK = clock;
-  // assign axi_if_xbar2uart.ARESETn = ~reset;
+  assign axi_if_xbar2uart.ACLK = clk;
+  assign axi_if_xbar2uart.ARESETn = ~rst;
 
-  // assign axi_if_xbar2clint.ACLK = clock;
-  // assign axi_if_xbar2clint.ARESETn = ~reset;
+  assign axi_if_xbar2clint.ACLK = clk;
+  assign axi_if_xbar2clint.ARESETn = ~rst;
 
-  // Xbar uXbar (
-  //   .axi_if_in(axi_if_arb2xbar),
-
-  //   .axi_if_ram(axi_if_xbar2ram),
-  //   .axi_if_uart(axi_if_xbar2uart),
-  //   .axi_if_clint(axi_if_xbar2clint)
-  // );
+  // just for test
+  // assign axi_if_xbar2uart.aw.AWREADY = 1'b1;
+  // assign axi_if_xbar2uart.w.WREADY = 1'b1;
+  // assign axi_if_xbar2uart.b.BVALID = 1'b1;
 
 
-  // // =========== RAM 例化 ===========  
-  // RAM uRAM (
-  //   .axi_if (axi_if_xbar2ram),
+  Xbar uXbar (
+    .axi_if_in(axi_if_arb2xbar),
 
-  //   .ramReadData(ramReadData),
-  //   .ramReadAddr(ramReadAddr),
-  //   .ramRe(ramRe),
+    .axi_if_ram(axi_if_xbar2ram),
+    .axi_if_uart(axi_if_xbar2uart),
+    .axi_if_clint(axi_if_xbar2clint)
+  );
 
-  //   .ramWriteAddr(ramWriteAddr),
-  //   .ramWriteData(ramWriteData),
-  //   .ramWriteMask(ramWriteMask),
-  //   .ramWe(ramWe)
-  // );
 
-  // // =========== UART 例化 ===========
-  // UART uUART (
-  //   .axi_if(axi_if_xbar2uart)
-  // );
+  // =========== RAM 例化 ===========  
+  RAM uRAM (
+    .axi_if (axi_if_xbar2ram),
+
+    .ramReadData(ramReadData),
+    .ramReadAddr(ramReadAddr),
+    .ramRe(ramRe),
+
+    .ramWriteAddr(ramWriteAddr),
+    .ramWriteData(ramWriteData),
+    .ramWriteMask(ramWriteMask),
+    .ramWe(ramWe)
+  );
+
+  // =========== UART 例化 ===========
+  UART uUART (
+    .axi_if(axi_if_xbar2uart)
+  );
 
   // =========== CLINT 例化 ===========
-  // CLINT uCLINT (
-  //   .axi_if(axi_if_xbar2clint)
-  // );
+  CLINT uCLINT (
+    .axi_if(axi_if_xbar2clint)
+  );
 endmodule

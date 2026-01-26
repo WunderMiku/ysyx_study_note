@@ -1,7 +1,7 @@
 #ifndef __NPC_H__
 #define __NPC_H__
 
-#include "VysyxSoCFull.h"
+#include "Vysyx_25090244_top.h"
 #include "verilatedos.h"
 #include <stdint.h>
 
@@ -64,7 +64,7 @@ typedef struct {
 
 extern CpuState cpu;
 extern NpcState npcState;
-extern std::unique_ptr<VysyxSoCFull> dut;
+extern std::unique_ptr<Vysyx_25090244_top> dut;
 
 extern vluint32_t* M;
 void cpuExec(uint32_t n);

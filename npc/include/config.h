@@ -14,6 +14,5 @@
 #define Watchpoint_enable
 // #define Difftest_enable
 // #define Mtrace_enable
-#define BatchMode_enable
 
 #endif

@@ -1,4 +1,4 @@
-#include "VysyxSoCFull.h"
+#include "Vysyx_25090244_top.h"
 #include <bits/posix2_lim.h>
 #include <cassert>
 #include <cstdint>
@@ -12,8 +12,8 @@
 #include "svdpi.h"
 #include "npc.h"
 #include "files.h"
-// #include "ram.h"
-// #include "reg.h"
+#include "ram.h"
+#include "reg.h"
 #include "watchpoint.h"
 #include "difftest.h"
 #include "timer.h"
@@ -31,8 +31,8 @@ uint32_t fileSize;
 bool BatchMode = false;
 char NEMU_SO_PATH[128] = "/home/misuzu/ysyx-workbench/nemu/build/riscv32-nemu-interpreter-so";
 
-static void singleCycle(VysyxSoCFull*);
-static void reset(VysyxSoCFull*);
+static void singleCycle(Vysyx_25090244_top*);
+static void reset(Vysyx_25090244_top*);
 static void execOnce();
 static int checkEbreak();
 static bool checkInstVaild();
@@ -41,10 +41,6 @@ static void setInstLog(uint32_t n);
 static void sim_init(int argc, char** argv);
 void update_cpuState();
 int get_random(int n);
-
-extern "C" void flash_read(int32_t addr, int32_t *data) { assert(0); }
-extern "C" void mrom_read(int32_t addr, int32_t *data) { assert(0); }
-
 
 std::unique_ptr<VerilatedContext> contextp{new VerilatedContext};
 std::unique_ptr<Vysyx_25090244_top> dut{new Vysyx_25090244_top{contextp.get(), "TOP"}};
@@ -58,10 +54,6 @@ int main(int argc, char** argv) {
 
 	// batch mode check
 	BatchMode = (argc > 3 && (strcmp(argv[3], "--batch") == 0));
-
-#ifdef BatchMode_enable // form config.h
-	BatchMode = true;
-#endif
 	
 	verilatorInit(tfp, contextp.get(), dut.get(), argc, argv);
 	reset(dut.get());
@@ -98,7 +90,7 @@ static void singleCycle(Vysyx_25090244_top* dut) {
 	tfp->dump(contextp->time());
 }
 
-static void reset(VysyxSoCFull *dut) {
+static void reset(Vysyx_25090244_top *dut) {
 	dut->rst = 1; dut->clk = 0; dut->eval();
 	singleCycle(dut);
 	dut->rst = 0;	dut->eval();

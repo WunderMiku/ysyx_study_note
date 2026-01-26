@@ -1,4 +1,4 @@
-TOPNAME = ysyxSoCFull
+TOPNAME = ysyx_25090244_top
 NXDC_FILES = constr/top.nxdc
 INC_PATH ?= $(NPC_HOME)/include
 SIM_ARGS ?= ./resource/default.bin
@@ -63,18 +63,11 @@ $(CSRCS): $(HSRCS)
 # update timestamp to force recompile
 	@touch $@ 
 
-# rules for ysyxSOC
-VERILATOR_CFLAGS_SOC += +incdir+$(SOC_HOME)/perip/uart16550/rtl \
-                        +incdir+$(SOC_HOME)/perip/spi/rtl \
-												--timescale 1ns/1ns --no-timing
-
-VSCRS_SOC := $(shell find $(SOC_HOME)/perip  -name "*.v") $(SOC_HOME)/build/ysyxSoCFull.v
-
 # build rules
-$(BIN): $(VPKGS) $(VSRCS) $(VSCRS_SOC) $(CSRCS) $(NVBOARD_ARCHIVE)
+$(BIN): $(VPKGS) $(VSRCS) $(CSRCS) $(NVBOARD_ARCHIVE)
 	@rm -rf $(OBJ_DIR)
 	@echo "-- Running Verilator --"
-	$(VERILATOR) $(VERILATOR_CFLAGS) $(VERILATOR_CFLAGS_SOC)\
+	$(VERILATOR) $(VERILATOR_CFLAGS) \
 		--top-module $(TOPNAME) $^ \
 		$(addprefix -CFLAGS , $(CXXFLAGS)) $(addprefix -LDFLAGS , $(LDFLAGS)) \
 		--Mdir $(OBJ_DIR) --exe -o $(abspath $(BIN))
