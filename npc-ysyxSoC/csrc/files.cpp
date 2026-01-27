@@ -26,7 +26,7 @@ uint32_t loadFile(int argc, char** argv) {
 		// 确保不会超出M数组的大小
 		size_t wordsToRead = fileSize / sizeof(uint32_t);
 		if (wordsToRead > MEM_SIZE) {
-			printf("文件过大，无法加载到内存中,你需要%zu\n", wordsToRead);
+			printf("文件过大，无法加载到内存中,你需要 0x%lxB 的空间, 但目前仅有 0x%xB 空间可用\n", wordsToRead * sizeof(uint32_t), MEM_SIZE);
 			exit(1);
 		}
 		
@@ -34,7 +34,7 @@ uint32_t loadFile(int argc, char** argv) {
 		readWords = fread(M, sizeof(uint32_t), wordsToRead, file);
 		fclose(file);
 		
-		printf(COLOR_GREEN "成功加载 %ld 字节 (%zu 个32位字) 到内存\n" COLOR_NONE , readWords * sizeof(uint32_t), readWords);
+		printf(COLOR_GREEN "成功加载 0x%lx 字节 ( 0x%lx 字) 到内存\n" COLOR_NONE , readWords * sizeof(uint32_t), readWords);
 	} else {
 		printf(COLOR_RED "无法打开文件: %s\n" COLOR_NONE , argv[2]);
 		exit(1);

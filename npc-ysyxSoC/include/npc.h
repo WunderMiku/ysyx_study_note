@@ -40,7 +40,7 @@
 #define BOLD_TEXT "\033[1m"
 #define ITALIC_TEXT "\033[3m"
 
-#define MEM_SIZE 0x8000000
+#define MEM_SIZE 0x0FFF
 
 // #include "config.h"
 

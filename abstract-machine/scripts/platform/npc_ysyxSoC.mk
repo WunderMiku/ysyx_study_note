@@ -1,17 +1,17 @@
-AM_SRCS := riscv/npc/start.S \
-           riscv/npc/trm.c \
-           riscv/npc/ioe.c \
-           riscv/npc/timer.c \
-           riscv/npc/input.c \
-           riscv/npc/cte.c \
-           riscv/npc/trap.S \
+AM_SRCS := riscv/npc_ysyxSoC/start.S \
+           riscv/npc_ysyxSoC/trm.c \
+           riscv/npc_ysyxSoC/ioe.c \
+           riscv/npc_ysyxSoC/timer.c \
+           riscv/npc_ysyxSoC/input.c \
+           riscv/npc_ysyxSoC/cte.c \
+           riscv/npc_ysyxSoC/trap.S \
            platform/dummy/vme.c \
            platform/dummy/mpe.c
 
 CFLAGS    += -fdata-sections -ffunction-sections
-CFLAGS    += -I$(AM_HOME)/am/src/riscv/npc/include
-LDSCRIPTS += $(AM_HOME)/scripts/linker.ld
-LDFLAGS   += --defsym=_pmem_start=0x20000000 --defsym=_entry_offset=0x0
+CFLAGS    += -I$(AM_HOME)/am/src/riscv/npc_ysyxSoC/include
+LDSCRIPTS += $(AM_HOME)/scripts/SoClinker.ld
+LDFLAGS   += --defsym=_prom_start=0x20000000 --defsym=_entry_offset=0x0 --defsym=_pram_start=0x0F000000
 LDFLAGS   += --gc-sections -e _start
 
 MAINARGS_MAX_LEN = 64
@@ -27,6 +27,6 @@ image: image-dep
 	@$(OBJCOPY) -S --set-section-flags .bss=alloc,contents -O binary $(IMAGE).elf $(IMAGE).bin
 
 run: insert-arg
-	$(MAKE) -C $(NPC_HOME) SIM_ARGS="$(IMAGE).bin" ELF_PATH="$(IMAGE).elf" BATMODE=true sim
+	$(MAKE) -C $(NPC_SOC_HOME) SIM_ARGS="$(IMAGE).bin" ELF_PATH="$(IMAGE).elf" BATMODE=true sim
 
 .PHONY: insert-arg
