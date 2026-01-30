@@ -1,0 +1,56 @@
+
+/home/misuzu/ysyx-workbench/am-kernels/kernels/tests/cpu-tests/build/sum-riscv32e-npc_ysyxSoC.elf：     文件格式 elf32-littleriscv
+
+
+Disassembly of section .text:
+
+20000000 <_start>:
+20000000:	00000413          	li	s0,0
+20000004:	ef001117          	auipc	sp,0xef001
+20000008:	ffc10113          	addi	sp,sp,-4 # f001000 <_end>
+2000000c:	078000ef          	jal	20000084 <_trm_init>
+
+20000010 <check>:
+20000010:	00050463          	beqz	a0,20000018 <check+0x8>
+20000014:	00008067          	ret
+20000018:	ff410113          	addi	sp,sp,-12
+2000001c:	00100513          	li	a0,1
+20000020:	00112423          	sw	ra,8(sp)
+20000024:	054000ef          	jal	20000078 <halt>
+
+20000028 <main>:
+20000028:	ff010113          	addi	sp,sp,-16
+2000002c:	00112623          	sw	ra,12(sp)
+20000030:	00012023          	sw	zero,0(sp)
+20000034:	00100793          	li	a5,1
+20000038:	06500693          	li	a3,101
+2000003c:	00012703          	lw	a4,0(sp)
+20000040:	00f70733          	add	a4,a4,a5
+20000044:	00e12023          	sw	a4,0(sp)
+20000048:	00178793          	addi	a5,a5,1
+2000004c:	fed798e3          	bne	a5,a3,2000003c <main+0x14>
+20000050:	00012503          	lw	a0,0(sp)
+20000054:	fffff7b7          	lui	a5,0xfffff
+20000058:	c4678793          	addi	a5,a5,-954 # ffffec46 <_etext+0xdfffeba2>
+2000005c:	00f50533          	add	a0,a0,a5
+20000060:	00153513          	seqz	a0,a0
+20000064:	fadff0ef          	jal	20000010 <check>
+20000068:	00c12083          	lw	ra,12(sp)
+2000006c:	00000513          	li	a0,0
+20000070:	01010113          	addi	sp,sp,16
+20000074:	00008067          	ret
+
+20000078 <halt>:
+20000078:	00050513          	mv	a0,a0
+2000007c:	00100073          	ebreak
+20000080:	0000006f          	j	20000080 <halt+0x8>
+
+20000084 <_trm_init>:
+20000084:	ff410113          	addi	sp,sp,-12
+20000088:	00000517          	auipc	a0,0x0
+2000008c:	01c50513          	addi	a0,a0,28 # 200000a4 <_etext>
+20000090:	00112423          	sw	ra,8(sp)
+20000094:	f95ff0ef          	jal	20000028 <main>
+20000098:	00050513          	mv	a0,a0
+2000009c:	00100073          	ebreak
+200000a0:	0000006f          	j	200000a0 <_trm_init+0x1c>

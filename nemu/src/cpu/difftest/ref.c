@@ -21,6 +21,8 @@
 #include <memory/paddr.h>
 #include <stdint.h>
 
+void init_device();
+
 void diff_memcpy(paddr_t dest, void* src, size_t n);
 __EXPORT void difftest_memcpy(paddr_t addr, void *buf, size_t n, bool direction) {
   if(direction == DIFFTEST_TO_REF) {
@@ -66,6 +68,7 @@ __EXPORT void difftest_raise_intr(word_t NO) {
 __EXPORT void difftest_init(int port) {
   void init_mem();
   init_mem();
+  init_device(); // just for sram
   /* Perform ISA dependent initialization. */
   init_isa();
 }

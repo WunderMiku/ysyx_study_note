@@ -35,9 +35,19 @@ $(SRC_AUTO_BIND): $(NXDC_FILES)
 
 # project source
 CSRCS = $(shell find $(abspath ./csrc) -name "*.c" -o -name "*.cc" -o -name "*.cpp")
-
+INC_PATH += $(shell find $(NPC_HOME)/include -type d)
 VPKGS := $(shell find $(abspath ./vsrc) -regex ".*_pkg\.sv")
 VSRCS := $(shell find $(abspath ./vsrc) \( -name "*.v" -o -name "*.sv" \) ! -regex ".*_pkg\.sv")
+
+
+# additional libraries
+LDFLAGS += -lreadline
+
+LIBCAPSTONE = $(NPC_HOME)/tools/capstone/repo/libcapstone.so.5
+INC_PATH += $(NPC_HOME)/tools/capstone/repo/include
+csrc/utils/disasm.c: $(LIBCAPSTONE)
+$(LIBCAPSTONE):
+	$(MAKE) -C tools/capstone
 
 
 # rules for NVBoard
@@ -46,7 +56,7 @@ VSRCS := $(shell find $(abspath ./vsrc) \( -name "*.v" -o -name "*.sv" \) ! -reg
 
 # rules for verilator
 INCFLAGS = $(addprefix -I, $(INC_PATH))
-CXXFLAGS += $(INCFLAGS) -DTOP_NAME="\"V$(TOPNAME)\""
+CXXFLAGS += $(INCFLAGS) -DTOP_NAME="\"V$(TOPNAME)\"" -Os
 
 # rules for dependent .h files
 HSRCS = $(shell find $(abspath ./include) -name "*.h")

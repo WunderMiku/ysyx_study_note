@@ -13,21 +13,19 @@
 # See the Mulan PSL v2 for more details.
 #**************************************************************************************/
 
-DIRS-y += src/device/io
-SRCS-$(CONFIG_DEVICE) += src/device/device.c src/device/alarm.c src/device/intr.c
-SRCS-$(CONFIG_HAS_SERIAL) += src/device/serial.c
-SRCS-$(CONFIG_HAS_TIMER) += src/device/timer.c
-SRCS-$(CONFIG_HAS_KEYBOARD) += src/device/keyboard.c
-SRCS-$(CONFIG_HAS_VGA) += src/device/vga.c
-SRCS-$(CONFIG_HAS_AUDIO) += src/device/audio.c
-SRCS-$(CONFIG_HAS_DISK) += src/device/disk.c
-SRCS-$(CONFIG_HAS_SDCARD) += src/device/sdcard.c
-SRCS-$(CONFIG_HAS_SRAM) += src/device/sram.c
-
-SRCS-BLACKLIST-$(CONFIG_TARGET_AM) += src/device/alarm.c
-
-ifdef CONFIG_DEVICE
-ifndef CONFIG_TARGET_AM
-LIBS += $(shell sdl2-config --libs)
+REPO_PATH = repo
+ifeq ($(wildcard repo/include/capstone/capstone.h),)
+  $(shell git clone --depth=1 -b 5.0.3 git@github.com:capstone-engine/capstone.git $(REPO_PATH))
 endif
-endif
+
+CAPSTONE = $(REPO_PATH)/libcapstone.so.5
+$(CAPSTONE):
+	cd $(REPO_PATH) && CAPSTONE_ARCHS="x86|mips|riscv|loongarch" bash make.sh
+
+clean:
+	$(MAKE) -C $(REPO_PATH) clean
+
+all: $(CAPSTONE)
+.DEFAULT_GOAL = all
+
+.PHONY: all clean

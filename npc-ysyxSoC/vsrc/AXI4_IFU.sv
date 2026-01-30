@@ -115,6 +115,16 @@ module axi4_lite_ifu (
 					axi_reg.r.RREADY <= 1'b0;
 					rdata <= axi_if.r.RDATA;
 					rresp <= axi_if.r.RRESP;
+					if(axi_if.r.RRESP == 2'b10) begin
+						$write("[AXI4_IFU] Read Error [SLVERR]\n");
+						$write("address: %x\n", axi_if.ar.ARADDR);
+						assert (0); 
+					end else 
+					if(axi_if.r.RRESP == 2'b11) begin
+						$write("[AXI4_IFU] Read Error [DECERR]\n");
+						$write("address: %x\n", axi_if.ar.ARADDR);						
+						assert (0);
+					end
 				end
 			end
 

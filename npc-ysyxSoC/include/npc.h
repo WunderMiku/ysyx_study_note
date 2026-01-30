@@ -40,30 +40,34 @@
 #define BOLD_TEXT "\033[1m"
 #define ITALIC_TEXT "\033[3m"
 
-#define MEM_SIZE 0x0FFF
+#include "config.h"
 
-// #include "config.h"
+typedef enum {
+	NPC_RUNNING = 0,
+	NPC_END,
+	NPC_QUIT,
+	NPC_STOP,
+	NPC_ABORT
+} NpcStateType;
 
-// typedef enum {
-// 	NPC_RUNNING = 0,
-// 	NPC_END,
-// 	NPC_QUIT,
-// 	NPC_STOP,
-// 	NPC_ABORT
-// } NpcStateType;
+typedef struct {
+  NpcStateType state;
+	uint32_t inst, halt_pc;
+	char instLog[256];
+} NpcState;
 
-// typedef struct {
-//   NpcStateType state;
-// 	uint32_t inst, halt_pc;
-// 	char instLog[256];
-// } NpcState;
+typedef struct {
+  uint32_t gpr[RISCV_GPR_NUM];  /* 通用寄存器 */
+  uint32_t csr[CSR_COUNT];      /* 控制寄存器 */
+  uint32_t pc;                  /* 程序计数器 */
+} CpuState;
 
-// typedef struct {
-//   uint32_t gpr[RISCV_GPR_NUM];  /* 通用寄存器 */
-//   uint32_t csr[CSR_COUNT];      /* 控制寄存器 */
-//   uint32_t pc;                  /* 程序计数器 */
-// } CpuState;
 // ===== 全局对象（在 main.cpp 中定义）=====
+extern char NEMU_SO_PATH[128];
+extern int instNum;
+extern uint32_t fileSize;
+extern CpuState cpu;
+extern NpcState npcState;
 extern vluint32_t* M;
 extern std::unique_ptr<VerilatedContext> contextp;
 extern VerilatedFstC*    tfp;
@@ -83,11 +87,13 @@ void verilatorInit(
 void cpuExec(uint32_t n);
 void execOnce();
 void singleCycle(VysyxSoCFull* dut);
-void reset(VysyxSoCFull* dut);
+void reset(VysyxSoCFull *dut, int n);
 void sim_init(int argc, char** argv);
+void update_cpuState();
 
 // ===== 工具函数 =====
 int get_random(int n);
 int checkEbreak();
+void setInstLog(uint32_t n, uint32_t before_pc);
 
 #endif // NPC_H__

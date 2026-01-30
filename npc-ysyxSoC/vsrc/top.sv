@@ -72,7 +72,16 @@ module ysyx_25090244 (
   output [1:0]  io_slave_rresp,
   output [31:0] io_slave_rdata,
   output        io_slave_rlast,
-  output [3:0]  io_slave_rid
+  output [3:0]  io_slave_rid,
+
+  // 调试接口
+  output [31:0] out_pc,
+  output [31:0] out_reg [31:0],
+  output [31:0] out_csr [3:0],
+  output inst_valid_flag,
+
+  output [1:0] out_top_state, out_ifu_state, out_lsu_write_state, out_lsu_read_state,
+  output reg inst_done
 );
 
   // Master 接口处理
@@ -125,19 +134,19 @@ module ysyx_25090244 (
 
 
   // =========== 调试接口实现 ===========
-  // assign inst_valid_flag = |{add_en, addi_en, lui_en, lw_en, lbu_en, sw_en, sb_en, jalr_en, ebreak_en, auipc_en, jal_en,
-  //                            sub_en, sltiu_en, beq_en, bne_en, sltu_en, xor_en, or_en, sh_en, srai_en, andi_en, sll_en, 
-  //                            and_en, xori_en, bge_en, blt_en, srli_en, bgeu_en, slli_en, bltu_en, sra_en, srl_en, lh_en,
-  //                            lhu_en, lb_en, ori_en, slti_en, slt_en, csrrc_en, csrrs_en, csrrw_en, ecall_en, mret_en};
+  assign inst_valid_flag = |{add_en, addi_en, lui_en, lw_en, lbu_en, sw_en, sb_en, jalr_en, ebreak_en, auipc_en, jal_en,
+                             sub_en, sltiu_en, beq_en, bne_en, sltu_en, xor_en, or_en, sh_en, srai_en, andi_en, sll_en, 
+                             and_en, xori_en, bge_en, blt_en, srli_en, bgeu_en, slli_en, bltu_en, sra_en, srl_en, lh_en,
+                             lhu_en, lb_en, ori_en, slti_en, slt_en, csrrc_en, csrrs_en, csrrw_en, ecall_en, mret_en};
   
-  // assign out_top_state = top_state;
-  // always_ff @(posedge clock) begin
-  //   if (reset) begin
-  //     inst_done <= 1'b0;
-  //   end else begin
-  //     inst_done <= (top_state == WBU_WAIT) & (top_next_state == IFU_WAIT);
-  //   end
-  // end
+  assign out_top_state = top_state;
+  always_ff @(posedge clock) begin
+    if (reset) begin
+      inst_done <= 1'b0;
+    end else begin
+      inst_done <= (top_state == WBU_WAIT) & (top_next_state == IFU_WAIT);
+    end
+  end
 
   // =========== TOP FSM ===========
   // 目前使用“总控制器”来控制目前的指令执行流程
@@ -260,14 +269,13 @@ module ysyx_25090244 (
 
   // =========== IFU例化 ===========
   wire [31:0] inst;
-  // assign out_pc = pc;
+  assign out_pc = pc;
 
   axi4_lite_if axi_if_lfu2rom();
   assign axi_if_lfu2rom.ACLK = clock;
   assign axi_if_lfu2rom.ARESETn = ~reset;
 
   wire [1:0] ifu_resp;
-  wire [1:0] out_ifu_state;
 
   axi4_lite_ifu uAXI4_ifu(
     .axi_if(axi_if_lfu2rom),
@@ -432,7 +440,6 @@ module ysyx_25090244 (
   // // A0 输出
   // assign A0 = A0_val;
   wire [31:0] A0_val;
-  wire [31:0] out_reg [31:0];
 
   // WBU 输入 至 写端口
   assign reg_write_ena = wb_reg_we;
@@ -476,8 +483,6 @@ module ysyx_25090244 (
   assign csr_wdata1 = ex_csr_wdata1;
   assign csr_waddr1 = ex_csr_waddr1;
 
-  wire [31:0] out_csr [3:0];
-
   ysyx_25090244_RV32_csrs uRV32_csrs (
     .clk(clock),
     .rst(reset),
@@ -505,8 +510,6 @@ module ysyx_25090244 (
   axi4_lite_if axi_if_lsu2ram();
   assign axi_if_lsu2ram.ACLK = clock;
   assign axi_if_lsu2ram.ARESETn = ~reset;
-
-  wire [1:0] out_lsu_write_state, out_lsu_read_state;
 
   axi4_lite_npcside uAXI4_lsu (
     .axi_if(axi_if_lsu2ram),

@@ -37,7 +37,7 @@ static void execOnce();
 static int checkEbreak();
 static bool checkInstVaild();
 static inline void clearScreen();
-static void setInstLog(uint32_t n);
+static void setInstLog(uint32_t n, uint32_t before_pc);
 static void sim_init(int argc, char** argv);
 void update_cpuState();
 int get_random(int n);
@@ -50,6 +50,7 @@ NpcState npcState;
 CpuState cpu;
 
 int main(int argc, char** argv) {
+	setbuf(stdout, NULL); // 取消缓冲区
 	fileSize = loadFile(argc, argv);
 
 	// batch mode check
@@ -180,7 +181,7 @@ void cpuExec(uint32_t n) {
 #ifdef Watchpoint_enable
 			check_all_using_wp(); // 基于上一次指令执行结果进行检查
 #endif
-			setInstLog(n); // 写入指令日志
+			setInstLog(n, before_pc); // 写入指令日志
 		}
 	}
 	return;
@@ -190,12 +191,12 @@ static inline void clearScreen() {
 	return;
 }
 
-static void setInstLog(uint32_t n) {
-	npcState.inst = fetchInst(dut->out_pc);
+static void setInstLog(uint32_t n, uint32_t before_pc) {
+	npcState.inst = fetchInst(before_pc);
 		char *p = npcState.instLog;
-		int usedLen = sprintf(p, COLOR_MIKU "0x%08x"  COLOR_NONE ": |" COLOR_DYELLOW " %08x " COLOR_NONE "|  ", dut->out_pc, npcState.inst);
+		int usedLen = sprintf(p, COLOR_MIKU "0x%08x"  COLOR_NONE ": |" COLOR_DYELLOW " %08x " COLOR_NONE "|  ", before_pc, npcState.inst);
 		p += usedLen;
-		disassemble(p, npcState.instLog + sizeof(npcState.instLog) - p, dut->out_pc, (uint8_t*)&npcState.inst, 4);
+		disassemble(p, npcState.instLog + sizeof(npcState.instLog) - p, before_pc, (uint8_t*)&npcState.inst, 4);
 
 		if(n < MAX_SHOW_INST) { printf("%s\n", npcState.instLog);}
 		ringbuf_put(&inst_ringbuf, npcState.instLog);

@@ -37,7 +37,7 @@ module Xbar (
 			IDLE: begin
 				if (in_wreq | in_rreq) begin
 					if (in_wreq || in_rreq) begin
-						if (req_addr >= 32'h8000_0000 && req_addr <= 32'h8800_0000) begin
+						if (req_addr >= 32'h2000_0000 && req_addr <= 32'h2800_0000) begin
 								next_state = Forward_Ram;
 						end else if (req_addr == 32'h1000_0000) begin
 								next_state = Forward_Uart;
