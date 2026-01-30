@@ -57,7 +57,7 @@ int checkEbreak() {
 	svBit flag;
 	dut->ebreak_get(&flag); 
 	if(flag) {
-		if(!dut->out_reg[0]) {
+		if(!dut->out_reg[10]) {
       int n = get_random(7);
 			// printf("n: " COLOR_MIKU "%d\n" COLOR_NONE, n);
 			printf("Get ebreak: " COLOR_GREEN "HIT GOOD TRAP" COLOR_NONE\

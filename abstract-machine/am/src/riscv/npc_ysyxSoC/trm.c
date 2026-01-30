@@ -1,6 +1,8 @@
 #include <am.h>
 #include <klib-macros.h>
+#include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 #include "riscv/npc_ysyxSoC/include/npc_ysyxSoC.h"
 
 extern char _heap_start;
@@ -38,8 +40,17 @@ static inline void print_msg(void) {
 	printf("-%d\n", marchid);
 }
 
+extern char _data_start[], _data_end[];
+extern char _data_load_start[], _data_load_end[];
+extern char _bss_start[], _bss_end[];
 void _trm_init() {
   // print_msg(); // For difftest: OFF needed
+  if((void*)_data_start != (void*)_data_load_start) {
+    memcpy(_data_start, _data_load_start, _data_end - _data_start);
+  }
+
+  memset(_bss_start, 0, _bss_end - _bss_start);
+
   int ret = main(mainargs);
   halt(ret);
 }
