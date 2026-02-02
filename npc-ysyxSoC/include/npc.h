@@ -69,6 +69,7 @@ extern uint32_t fileSize;
 extern CpuState cpu;
 extern NpcState npcState;
 extern vluint32_t* M;
+extern vluint32_t* Flash;
 extern std::unique_ptr<VerilatedContext> contextp;
 extern VerilatedFstC*    tfp;
 extern std::unique_ptr<VysyxSoCFull> dut;

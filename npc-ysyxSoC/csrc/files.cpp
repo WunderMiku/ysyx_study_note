@@ -7,6 +7,15 @@ static void initMem() {
         printf("Memory allocation failed!\n");
         exit(1);
     }
+		Flash = (vluint32_t*)calloc(MEM_SIZE, sizeof(vluint32_t));
+		if (!Flash) {
+        printf("Memory allocation failed!\n");
+        exit(1);
+    }
+		// test Flash
+		for(int i = 0; i < 100; i++) {
+			Flash[i] = 11451419;
+		}
 }
 uint32_t loadFile(int argc, char** argv) {
 	initMem();

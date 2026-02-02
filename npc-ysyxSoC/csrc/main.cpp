@@ -2,12 +2,15 @@
 #include <bits/posix2_lim.h>
 #include <cassert>
 #include <cstdint>
+#include "config.h"
 #include "verilated.h"
 #include "verilated_fst_c.h"
 #include "svdpi.h"
 #include "npc.h"
 #include "files.h"
 #include "sdb.h"
+#include "device.h"
+#include "verilatedos.h"
 
 #include <random>
 
@@ -15,6 +18,7 @@
 
 vluint64_t simTime = 0;
 vluint32_t* M = nullptr;
+vluint32_t* Flash = nullptr;
 
 int instNum = 0;
 uint32_t fileSize;
@@ -29,7 +33,11 @@ VerilatedFstC* tfp = new VerilatedFstC;
 NpcState npcState;
 CpuState cpu;
 
-extern "C" void flash_read(int32_t addr, int32_t *data) { assert(0); }
+extern "C" void flash_read(int32_t addr, int32_t *data) {
+	int32_t Flash_addr = (addr) >> 2;
+	// printf("addr: %x\t Flash_addr: %x\n",addr, Flash_addr);
+	*data = Flash[Flash_addr];
+ }
 extern "C" void mrom_read(int32_t addr, int32_t *data) { 
 	int32_t M_addr = (addr - MROM_BASE) >> 2;
 	*data = M[M_addr];
@@ -37,7 +45,6 @@ extern "C" void mrom_read(int32_t addr, int32_t *data) {
 int main(int argc, char** argv) {
 	setbuf(stdout, NULL); // 取消缓冲区
 	fileSize = loadFile(argc, argv);
-
 	// batch mode check
 	BatchMode = (argc > 3 && (strcmp(argv[3], "--batch") == 0));
 	

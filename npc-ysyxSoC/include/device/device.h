@@ -3,4 +3,6 @@
 
 int deviceRead(int raddr);
 
+void init_uart();
+
 #endif

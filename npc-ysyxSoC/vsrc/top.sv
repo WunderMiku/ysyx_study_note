@@ -88,9 +88,9 @@ module ysyx_25090244 (
   assign axi_if_arb2top.aw.AWREADY = io_master_awready;
   assign io_master_awvalid = axi_if_arb2top.aw.AWVALID;
   assign io_master_awaddr = axi_if_arb2top.aw.AWADDR;
+  assign io_master_awsize = axi_if_arb2top.aw.AWSIZE;
   assign io_master_awid = 4'b0; // 默认为0
   assign io_master_awlen = 8'b0; // 默认长度为1
-  assign io_master_awsize = 3'b010; // 默认为4字节
   assign io_master_awburst = 2'b01; // 默认为 INCR
 
   assign axi_if_arb2top.w.WREADY = io_master_wready;
@@ -107,9 +107,9 @@ module ysyx_25090244 (
   assign axi_if_arb2top.ar.ARREADY = io_master_arready;
   assign io_master_arvalid = axi_if_arb2top.ar.ARVALID;
   assign io_master_araddr = axi_if_arb2top.ar.ARADDR;
+  assign io_master_arsize = axi_if_arb2top.ar.ARSIZE;
   assign io_master_arid = 4'b0; // 暂时不使用
   assign io_master_arlen = 8'b0; // 默认长度1
-  assign io_master_arsize = 3'b010; // 默认大小4字节
   assign io_master_arburst = 2'b01; // 默认为INCR
 
   assign io_master_rready = axi_if_arb2top.r.RREADY;
@@ -118,7 +118,6 @@ module ysyx_25090244 (
   assign axi_if_arb2top.r.RDATA = io_master_rdata;
   // Rlast 暂时不处理
   // Rid 暂时不处理
-
 
 
   // Slave 接口处理 (目前仅处理一下输出的端口，输出0就行)
@@ -217,7 +216,6 @@ module ysyx_25090244 (
     endcase
   end
 
-
   reg ifu_en, exu_en, lsu_en, wbu_en;
 	// 使能控制
 	always @(posedge clock) begin
@@ -282,6 +280,7 @@ module ysyx_25090244 (
     .en(ifu_en),
     .will_done(ifu_will_done),
     .raddr(pc),
+    .rstrb(ex_ram_read_mask),
     .rresp(ifu_resp),
     .rdata(inst),
     .ifu_state(out_ifu_state)
@@ -360,6 +359,7 @@ module ysyx_25090244 (
   wire [31:0] ex_next_pc;
   wire [31:0] ex_rs1_val, ex_rs2_val;
   wire        ex_ram_we, ex_ram_re, ex_reg_we;
+  wire [3:0]  ex_ram_read_mask;
   wire [31:0] ex_ram_write_addr, ex_ram_write_data, ex_ram_read_addr;
   wire [3:0]  ex_ram_write_mask;
   wire [31:0] ex_reg_data;
@@ -410,6 +410,7 @@ module ysyx_25090244 (
 
     .ram_re(ex_ram_re),
     .ram_read_addr(ex_ram_read_addr),
+    .ram_read_mask(ex_ram_read_mask),
 
     .reg_we(ex_reg_we),
     .reg_addr(ex_reg_addr),
@@ -518,7 +519,10 @@ module ysyx_25090244 (
 
     .is_load(is_load),
     .is_store(is_store),
+
     .raddr(ex_ram_read_addr),
+    .rstrb(ex_ram_read_mask),
+
     .waddr(ex_ram_write_addr),
     .wdata(ex_ram_write_data),
     .wstrb(ex_ram_write_mask),

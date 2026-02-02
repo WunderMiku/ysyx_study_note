@@ -2,10 +2,14 @@
 #define __CONFIG_H__
 
 #define MEM_BASE 0x20000000
-#define MEM_SIZE 0x0fff
+#define MEM_SIZE 0x1000
 
 #define MROM_BASE 0x20000000
 
+#define FLASH_BASE 0x30000000
+#define FLASH_SIZE 0x10000000
+
+// device
 #define SERIAL_PORT  0x10000000
 #define RTC_ADDR     0x0200BFF8
 
@@ -16,7 +20,7 @@
 
 // #define Ftrace_enable
 #define Watchpoint_enable
-//#define Difftest_enable
+// #define Difftest_enable
 // #define Mtrace_enable
 
 #endif

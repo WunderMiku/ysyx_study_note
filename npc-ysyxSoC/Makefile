@@ -35,7 +35,7 @@ $(SRC_AUTO_BIND): $(NXDC_FILES)
 
 # project source
 CSRCS = $(shell find $(abspath ./csrc) -name "*.c" -o -name "*.cc" -o -name "*.cpp")
-INC_PATH += $(shell find $(NPC_HOME)/include -type d)
+INC_PATH += $(shell find $(NPC_SOC_HOME)/include -type d)
 VPKGS := $(shell find $(abspath ./vsrc) -regex ".*_pkg\.sv")
 VSRCS := $(shell find $(abspath ./vsrc) \( -name "*.v" -o -name "*.sv" \) ! -regex ".*_pkg\.sv")
 
@@ -43,8 +43,8 @@ VSRCS := $(shell find $(abspath ./vsrc) \( -name "*.v" -o -name "*.sv" \) ! -reg
 # additional libraries
 LDFLAGS += -lreadline
 
-LIBCAPSTONE = $(NPC_HOME)/tools/capstone/repo/libcapstone.so.5
-INC_PATH += $(NPC_HOME)/tools/capstone/repo/include
+LIBCAPSTONE = $(NPC_SOC_HOME)/tools/capstone/repo/libcapstone.so.5
+INC_PATH += $(NPC_SOC_HOME)/tools/capstone/repo/include
 csrc/utils/disasm.c: $(LIBCAPSTONE)
 $(LIBCAPSTONE):
 	$(MAKE) -C tools/capstone

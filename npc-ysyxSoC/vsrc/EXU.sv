@@ -58,16 +58,17 @@ module ysyx_25090244_EXU (
 	// 内存接口
 	// 写端口
 	output        ram_we,
-	output [31:0] ram_write_addr,
+	output [31:0] ram_read_addr,
 	output [31:0] ram_write_data,
 	output [3:0]  ram_write_mask,
 	
 
 	// 读端口
 	output        ram_re,
-	output [31:0] ram_read_addr,
+	output [31:0] ram_write_addr,
+	output [3:0]  ram_read_mask,
 
-	// 寄存器接口(ToWBU)
+	// 寄存器接口
 	output        reg_we,
 	output [4:0]  reg_addr,
 	output [31:0] reg_data,
@@ -175,13 +176,14 @@ module ysyx_25090244_EXU (
 	                        ({32{sw_en}} & (rs2_val[31:0])) |
 													({32{sh_en}} & ({2{rs2_val[15:0]}}));
 
-	assign ram_write_addr = ({32{sb_en | sw_en | sh_en}} & (rs1_val + imm));
+
+	assign ram_write_addr  = ({32{sb_en | sw_en | sh_en}} & (rs1_val + imm));
 
 	assign ram_write_mask = ({4{sb_en}} & {ram_write_addr[1:0] == 2'd3, 
 																				 ram_write_addr[1:0] == 2'd2, 
 																				 ram_write_addr[1:0] == 2'd1, 
 																				 ram_write_addr[1:0] == 2'd0}) |
-													({4{sw_en}})                                 |
+													({4{sw_en}})                                |
 													({4{sh_en}} & {ram_write_addr[1:0] == 2'd2, 
 																				 ram_write_addr[1:0] == 2'd2, 
 																				 ram_write_addr[1:0] == 2'd0, 
@@ -191,8 +193,17 @@ module ysyx_25090244_EXU (
 
 	assign ram_read_addr = ({32{lbu_en | lw_en | lh_en | lhu_en | lb_en}} & (rs1_val + imm));
 
+	assign ram_read_mask =  ({4{lb_en | lbu_en}} & {ram_read_addr[1:0] == 2'd3, 
+																									ram_read_addr[1:0] == 2'd2, 
+																				 					ram_read_addr[1:0] == 2'd1, 
+																				 					ram_read_addr[1:0] == 2'd0}) |
+													({4{lw_en}})                                         |
+													({4{lh_en | lhu_en}} & {ram_read_addr[1:0] == 2'd2, 
+																									ram_read_addr[1:0] == 2'd2, 
+																									ram_read_addr[1:0] == 2'd0, 
+																									ram_read_addr[1:0] == 2'd0});
 
-	// 单字节读取
+// 单字节读取
 	reg [7:0] ram_read_offset_val;
 	reg [15:0] ram_read_offset_hval;
 	always @(*) begin 

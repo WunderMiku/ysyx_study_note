@@ -5,6 +5,8 @@ AM_SRCS := riscv/npc_ysyxSoC/start.S \
            riscv/npc_ysyxSoC/input.c \
            riscv/npc_ysyxSoC/cte.c \
            riscv/npc_ysyxSoC/trap.S \
+           riscv/npc_ysyxSoC/uart.c \
+           riscv/npc_ysyxSoC/bootloader.c \
            platform/dummy/vme.c \
            platform/dummy/mpe.c
 

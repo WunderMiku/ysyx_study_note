@@ -15,7 +15,10 @@ extern char _pram_start;
 Area heap = RANGE(&_heap_start, PRAM_END);
 static const char mainargs[MAINARGS_MAX_LEN] = TOSTRING(MAINARGS_PLACEHOLDER); // defined in CFLAGS
 
+bool uart_send_fifo_empty();
 void putch(char ch) {
+  while(!uart_send_fifo_empty()){}
+  // for(volatile int i = 0; i < 100; i++){}
   outb(SERIAL_PORT, ch);
 }
 
@@ -43,13 +46,16 @@ static inline void print_msg(void) {
 extern char _data_start[], _data_end[];
 extern char _data_load_start[], _data_load_end[];
 extern char _bss_start[], _bss_end[];
+
+void init_uart();
+void bootloader();
+#define FLASH_BASE 0x30000000
+
 void _trm_init() {
   // print_msg(); // For difftest: OFF needed
-  if((void*)_data_start != (void*)_data_load_start) {
-    memcpy(_data_start, _data_load_start, _data_end - _data_start);
-  }
-
-  memset(_bss_start, 0, _bss_end - _bss_start);
+  bootloader();
+  
+  init_uart();
 
   int ret = main(mainargs);
   halt(ret);

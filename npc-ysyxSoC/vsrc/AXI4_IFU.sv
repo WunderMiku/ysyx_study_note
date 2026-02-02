@@ -5,6 +5,7 @@ module axi4_lite_ifu (
 	output will_done, // npcside 告诉 top 是否将要完成
 
 	input [31:0] raddr,
+	input [3:0]  rstrb,
 
 	output reg [1:0] rresp,
 	output reg [31:0] rdata,
@@ -57,6 +58,21 @@ module axi4_lite_ifu (
 	wire ar_shake = axi_if.ar.ARVALID & axi_if.ar.ARREADY; 
 	wire r_shake = axi_if.r.RVALID & axi_if.r.RREADY;
 
+	logic [2:0] read_size;
+	always_comb begin
+		case(rstrb)
+		4'b0001: begin read_size = 3'd0; end
+		4'b0010: begin read_size = 3'd0; end
+		4'b0100: begin read_size = 3'd0; end
+		4'b1000: begin read_size = 3'd0; end
+		4'b1111: begin read_size = 3'd2; end
+		
+		default: begin
+			read_size = 3'd1;
+		end
+		endcase
+	end
+
 	// 状态转移逻辑
 	always_comb begin 
 		case(r_state)
@@ -95,9 +111,11 @@ module axi4_lite_ifu (
 		case(r_state) 
 			R_IDLE: begin
 				if(r_next_state == WAIT_AR) begin
+					axi_reg.ar.ARSIZE <= read_size;
 					axi_reg.ar.ARVALID <= 1'b1;
 					axi_reg.ar.ARADDR <= raddr;
 				end else begin // 简单复位逻辑
+					axi_reg.ar.ARSIZE <= 3'b0;
 					axi_reg.ar.ARVALID <= 1'b0;
 					axi_reg.r.RREADY <= 1'b0;
 				end

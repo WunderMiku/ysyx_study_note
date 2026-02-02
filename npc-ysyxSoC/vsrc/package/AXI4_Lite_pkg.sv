@@ -1,15 +1,10 @@
-// =============== AXI4-Lite Interface ==================
+// =============== AXI4 Interface ==================
 
 interface axi4_aw_if ();
   wire AWVALID;
   wire AWREADY;
   wire [31:0] AWADDR;
-
-  modport master (
-    output AWVALID,
-    input  AWREADY,
-    output AWADDR
-  );
+  wire [2:0] AWSIZE;
 endinterface
 
 interface axi4_w_if ();
@@ -29,7 +24,7 @@ interface axi4_ar_if ();
   wire ARVALID;
   wire ARREADY;
   wire [31:0] ARADDR;
-//	wire [3:0] ARPROT;
+	wire [2:0] ARSIZE;
 endinterface
 
 interface axi4_r_if ();
@@ -73,6 +68,8 @@ interface axi4_lite_if ();
     ar.ARVALID = 1'b0;
     ar.ARADDR  = '0;
     r.RREADY   = 1'b0;
+    aw.AWSIZE = '0;
+    ar.ARSIZE = '0;
   endtask
 
 
@@ -86,6 +83,7 @@ package axi4_lite_pkg;
 	typedef struct packed {
     reg        AWVALID;
     reg [31:0] AWADDR;
+    reg [2:0]  AWSIZE;
   } axi4_aw_Mreg;
 
   typedef struct packed {
@@ -101,6 +99,7 @@ package axi4_lite_pkg;
   typedef struct packed {
     reg        ARVALID;
     reg [31:0] ARADDR;
+    reg [2:0]  ARSIZE;
   } axi4_ar_Mreg;
 
   typedef struct packed {
