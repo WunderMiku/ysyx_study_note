@@ -13,9 +13,8 @@ static void initMem() {
         exit(1);
     }
 		// test Flash
-		for(int i = 0; i < 100; i++) {
-			Flash[i] = 11451419;
-		}
+		// vluint32_t Flash_cpy[] = {0x100007b7, 0x04100713, 0x00e78023, 0x100007b7, 0x00a00713, 0x00e78023, 0x0000006f};
+		// memcpy(Flash, Flash_cpy, sizeof(Flash_cpy));
 }
 uint32_t loadFile(int argc, char** argv) {
 	initMem();
