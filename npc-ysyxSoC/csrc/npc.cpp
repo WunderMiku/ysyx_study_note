@@ -7,7 +7,6 @@
 #include "reg.h"
 #include "ram.h"
 #include "watchpoint.h"
-#include "difftest.h"
 #include "sdb.h"
 #include "disasm.h"
 #include "ringbuf.h"
