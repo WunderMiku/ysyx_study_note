@@ -1,4 +1,6 @@
+#include "config.h"
 #include "debug.h"
+#include "ram.h"
 #include "npc.h"
 #include "device.h"
 #include <cassert>
@@ -70,6 +72,35 @@ int paddr_read(int raddr, int len) {
 }
 
 uint32_t fetchInst(uint32_t pc) {
-	return pmem_read(pc, 4);
+	// return pmem_read(pc, 4);
+	int32_t inst;
+	if (pc >= MEM_BASE && pc < MEM_BASE + MEM_SIZE) {
+		mrom_read(pc, &inst);
+		return inst;
+	} 
+	else if (pc >= FLASH_BASE && pc < FLASH_BASE + FLASH_SIZE) {
+		flash_read(pc - FLASH_BASE, &inst);
+		return inst;
+	}
+	panic("pc is not in flash or mrom | pc = 0x%08x", pc);
 }
 
+
+// NEW MEMORY 
+extern "C" void flash_read(int32_t addr, int32_t *data) {
+	if(addr < 0 || addr >= FLASH_SIZE) {
+		printf(COLOR_RED "Flash read out of range! | addr: 0x%08x\n" COLOR_NONE, addr);
+		assert(0);
+	}
+	int32_t Flash_addr = (addr) >> 2;
+	// printf("addr: %x\t Flash_addr: %x\n",addr, Flash_addr);
+	*data = Flash[Flash_addr];
+ }
+extern "C" void mrom_read(int32_t addr, int32_t *data) { 
+	if(addr < MEM_BASE || addr >= (MEM_BASE + MEM_SIZE)) {
+		printf(COLOR_RED "Mrom read out of range! | addr: 0x%08x\n" COLOR_NONE, addr);
+		assert(0);
+	}
+	int32_t M_addr = (addr - MROM_BASE) >> 2;
+	*data = M[M_addr];
+}

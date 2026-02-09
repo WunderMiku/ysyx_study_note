@@ -23,4 +23,6 @@
 // #define Difftest_enable
 // #define Mtrace_enable
 
+#define FLASH_ROM
+
 #endif

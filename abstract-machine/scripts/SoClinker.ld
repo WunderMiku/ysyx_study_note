@@ -3,6 +3,7 @@ ENTRY(_start)
 
 MEMORY {
   mrom (rx)  : ORIGIN = 0x20000000, LENGTH = 4K
+  flash (rx) : ORIGIN = 0x30000000, LENGTH = 256M
   sram (rwx) : ORIGIN = 0x0f000000, LENGTH = 8K
 }
 
@@ -10,14 +11,14 @@ SECTIONS {
   .text : {
     *(entry)
     *(.text*)
-  } > mrom 
+  } > flash 
 
   etext = .;
   _etext = .;
 
   .rodata : {
     *(.rodata*)
-  } > mrom
+  } > flash
 
 
   .data : {
@@ -26,7 +27,7 @@ SECTIONS {
     *(.sdata*)
     *(.sdata.*)
     _data_end = .;
-  } > sram AT> mrom
+  } > sram AT> flash
   
   _data_load_start = LOADADDR(.data);
   _data_load_end = _data_load_start + SIZEOF(.data);
@@ -37,12 +38,21 @@ SECTIONS {
     *(.sbss*)
     *(.scommon)
   _bss_end = .;
-  } > sram AT> mrom
-
   _heap_start = ALIGN(8);
+  } > sram AT> flash
 
-  _stack_pointer = ORIGIN(sram) + LENGTH(sram) - 0x4;
+  _stack_pointer = ALIGN(ORIGIN(sram) + LENGTH(sram) - 0x10, 16);
+/*
+   The stack grows downwards (towards lower addresses)
+   and the stack pointer shall be aligned to a
+   128-bit boundary upon procedure entry. The 
+   first argument passed on the stack is located
+   at offset zero of the stack pointer on function
+   entry; following arguments are stored at correspondingly
+   higher addresses.
+*/
   _stack_end = _stack_pointer - 0x1000;
+
   _heap_end = _stack_end - 0x40;
 } 
 

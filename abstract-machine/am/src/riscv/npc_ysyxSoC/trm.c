@@ -5,14 +5,14 @@
 #include <string.h>
 #include "riscv/npc_ysyxSoC/include/npc_ysyxSoC.h"
 
-extern char _heap_start;
+extern char _heap_start, _heap_end;
 int main(const char *args);
 
 extern char _pram_start;
 #define PRAM_SIZE (8 * 1024) // 8KB form sram
 #define PRAM_END  ((uintptr_t)&_pram_start + PRAM_SIZE)
 
-Area heap = RANGE(&_heap_start, PRAM_END);
+Area heap = RANGE(&_heap_start, &_heap_end);
 static const char mainargs[MAINARGS_MAX_LEN] = TOSTRING(MAINARGS_PLACEHOLDER); // defined in CFLAGS
 
 bool uart_send_fifo_empty();

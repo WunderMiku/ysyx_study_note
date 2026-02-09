@@ -10,7 +10,7 @@ module ysyx_25090244_PC (
 	// PC 更新逻辑
 	always @(posedge clk or posedge rst) begin
 		if (rst) begin
-			pc <= 32'h2000_0000;
+			pc <= 32'h3000_0000;  // FLASH 起始地址
 		end else begin
 			if(update_en)
 				pc <= next_pc;

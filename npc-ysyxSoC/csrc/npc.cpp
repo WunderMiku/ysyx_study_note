@@ -11,6 +11,7 @@
 #include "disasm.h"
 #include "ringbuf.h"
 
+#include <cstdint>
 #include <random>
 
 void verilatorInit(VerilatedFstC* tfp, VerilatedContext* contextp, VysyxSoCFull* dut, int argc, char** argv) {
@@ -56,15 +57,16 @@ int checkEbreak() {
 	svBit flag;
 	dut->ebreak_get(&flag); 
 	if(flag) {
-		if(!dut->out_reg[10]) {
+		uint32_t A0 = dut->out_reg[10];
+		if(!A0) {
       int n = get_random(7);
 			// printf("n: " COLOR_MIKU "%d\n" COLOR_NONE, n);
 			printf("Get ebreak: " COLOR_GREEN "HIT GOOD TRAP" COLOR_NONE\
 				 ", at pc: 0x%08x\nTotal inst(s): " COLOR_MIKU "%d" COLOR_NONE "%s" "\nCiallo~(∠•ω＜)⌒☆\n" COLOR_NONE, dut->out_pc, instNum, COLOR_SELECT(n));
 			npcState.state = NPC_END;
 		} else {
-			printf("Get ebreak: " COLOR_RED "HIT BAD TRAP" COLOR_NONE\
-				 ", at pc: 0x%08x\nTotal inst(s): " COLOR_MIKU "%d" COLOR_NONE "\n" COLOR_NONE, dut->out_pc, instNum);
+			printf("Get ebreak: " COLOR_RED "HIT BAD TRAP  | A0 = 0x%08x" COLOR_NONE\
+				 ", at pc: 0x%08x\nTotal inst(s): " COLOR_MIKU "%d" COLOR_NONE "\n" COLOR_NONE, A0, dut->out_pc, instNum);
 			npcState.state = NPC_ABORT;
 		}
 		return 1;

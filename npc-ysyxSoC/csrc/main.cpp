@@ -30,23 +30,6 @@ VerilatedFstC* tfp = new VerilatedFstC;
 NpcState npcState;
 CpuState cpu;
 
-extern "C" void flash_read(int32_t addr, int32_t *data) {
-	if(addr < 0 || addr >= FLASH_SIZE) {
-		printf(COLOR_RED "Flash read out of range! | addr: 0x%08x\n" COLOR_NONE, addr);
-		assert(0);
-	}
-	int32_t Flash_addr = (addr) >> 2;
-	printf("addr: %x\t Flash_addr: %x\n",addr, Flash_addr);
-	*data = Flash[Flash_addr];
- }
-extern "C" void mrom_read(int32_t addr, int32_t *data) { 
-	if(addr < MEM_BASE || addr >= (MEM_BASE + MEM_SIZE)) {
-		printf(COLOR_RED "Mrom read out of range! | addr: 0x%08x\n" COLOR_NONE, addr);
-		assert(0);
-	}
-	int32_t M_addr = (addr - MROM_BASE) >> 2;
-	*data = M[M_addr];
-}
 int main(int argc, char** argv) {
 	setbuf(stdout, NULL); // 取消缓冲区
 	fileSize = loadFile(argc, argv);
@@ -63,7 +46,7 @@ int main(int argc, char** argv) {
 
 	if(BatchMode) { 
 		printf("[BATMODE] Running...\n");
-		cpuExec(1000000); // just for test
+		cpuExec(-1);
 	} else {
 		while(1){
 			sdbMainLoop();

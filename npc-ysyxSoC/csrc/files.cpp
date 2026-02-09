@@ -1,5 +1,7 @@
 #include "npc.h"
 #include <cstdint>
+#include "config.h"
+
 
 static void initMem() {
     M = (vluint32_t*)calloc(MEM_SIZE, sizeof(vluint32_t));
@@ -31,8 +33,18 @@ uint32_t loadFile(int argc, char** argv) {
 		long fileSize = ftell(file);
 		rewind(file);
 		
-		// 确保不会超出M数组的大小
+		// 确保不会超出ROM的大小
 		size_t wordsToRead = fileSize / sizeof(uint32_t);
+
+#ifdef FLASH_ROM // 使用 flash 作为rom
+		if (wordsToRead > FLASH_SIZE) {
+			printf("文件过大，无法加载到内存中,你需要 0x%lxB 的空间, 但目前仅有 0x%xB 空间可用\n", wordsToRead * sizeof(uint32_t), MEM_SIZE);
+			exit(1);
+		}
+		
+		// 读取数据到M数组
+		readWords = fread(Flash, sizeof(uint32_t), wordsToRead, file);
+#else
 		if (wordsToRead > MEM_SIZE) {
 			printf("文件过大，无法加载到内存中,你需要 0x%lxB 的空间, 但目前仅有 0x%xB 空间可用\n", wordsToRead * sizeof(uint32_t), MEM_SIZE);
 			exit(1);
@@ -40,6 +52,7 @@ uint32_t loadFile(int argc, char** argv) {
 		
 		// 读取数据到M数组
 		readWords = fread(M, sizeof(uint32_t), wordsToRead, file);
+#endif
 		fclose(file);
 		
 		printf(COLOR_GREEN "成功加载 0x%lx 字节 ( 0x%lx 字) 到内存\n" COLOR_NONE , readWords * sizeof(uint32_t), readWords);
