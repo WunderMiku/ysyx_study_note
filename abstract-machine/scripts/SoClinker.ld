@@ -45,11 +45,7 @@ SECTIONS {
 /*
    The stack grows downwards (towards lower addresses)
    and the stack pointer shall be aligned to a
-   128-bit boundary upon procedure entry. The 
-   first argument passed on the stack is located
-   at offset zero of the stack pointer on function
-   entry; following arguments are stored at correspondingly
-   higher addresses.
+   128-bit boundary upon procedure entry. 
 */
   _stack_end = _stack_pointer - 0x1000;
 

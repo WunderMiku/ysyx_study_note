@@ -19,7 +19,7 @@ export VERILATOR_ROOT
 VERILATOR = $(VERILATOR_ROOT)/bin/verilator
 endif
 
-VERILATOR_CFLAGS += -MMD --build -cc -trace-fst \
+VERILATOR_CFLAGS += -sv -MMD --build -cc -trace-fst \
 				-O3 --x-assign fast --x-initial fast --noassert -j 0
 
 BUILD_DIR = ./build
@@ -67,6 +67,7 @@ $(CSRCS): $(HSRCS)
 # rules for ysyxSOC
 VERILATOR_CFLAGS_SOC += +incdir+$(SOC_HOME)/perip/uart16550/rtl \
                         +incdir+$(SOC_HOME)/perip/spi/rtl \
+												+incdir+$(SOC_HOME)/perip/psram\
 												--timescale 1ns/1ns --no-timing
 
 VSCRS_SOC := $(shell find $(SOC_HOME)/perip  -name "*.v") $(SOC_HOME)/build/ysyxSoCFull.v

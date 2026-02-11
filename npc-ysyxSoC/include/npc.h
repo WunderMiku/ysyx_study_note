@@ -65,6 +65,7 @@ typedef struct {
 // ===== 全局对象（在 main.cpp 中定义）=====
 extern char NEMU_SO_PATH[128];
 extern int instNum;
+extern int cycNum;
 extern uint32_t fileSize;
 extern CpuState cpu;
 extern NpcState npcState;

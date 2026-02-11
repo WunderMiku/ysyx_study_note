@@ -62,10 +62,10 @@ int checkEbreak() {
       int n = get_random(7);
 			// printf("n: " COLOR_MIKU "%d\n" COLOR_NONE, n);
 			printf("Get ebreak: " COLOR_GREEN "HIT GOOD TRAP" COLOR_NONE\
-				 ", at pc: 0x%08x\nTotal inst(s): " COLOR_MIKU "%d" COLOR_NONE "%s" "\nCiallo~(∠•ω＜)⌒☆\n" COLOR_NONE, dut->out_pc, instNum, COLOR_SELECT(n));
+				 ", at pc: 0x%08x\nTotal inst(s): " COLOR_MIKU "%d" COLOR_NONE " | Total cycle(s): " COLOR_MIKU "%d" COLOR_NONE "\nCPI: " COLOR_MIKU "%d" COLOR_NONE  "%s" "\nCiallo~(∠•ω＜)⌒☆\n" COLOR_NONE, dut->out_pc, instNum, cycNum, cycNum/instNum, COLOR_SELECT(n));
 			npcState.state = NPC_END;
 		} else {
-			printf("Get ebreak: " COLOR_RED "HIT BAD TRAP  | A0 = 0x%08x" COLOR_NONE\
+			printf("Get ebreak: " COLOR_RED "HIT BAD TRAP  | A0 = 0x%08x \n > :(" COLOR_NONE\
 				 ", at pc: 0x%08x\nTotal inst(s): " COLOR_MIKU "%d" COLOR_NONE "\n" COLOR_NONE, A0, dut->out_pc, instNum);
 			npcState.state = NPC_ABORT;
 		}
@@ -84,7 +84,7 @@ bool checkInstVaild() {
 	return true;
 }
 void execOnce() {
-
+		cycNum++; // 周期数加一
 	if(dut->inst_done) { // 一条指令结束后
 		instNum++;
 		if(checkEbreak()) return; // 检测 ebreak 指令

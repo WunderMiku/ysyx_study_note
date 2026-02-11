@@ -18,6 +18,7 @@ vluint32_t* M = nullptr;
 vluint32_t* Flash = nullptr;
 
 int instNum = 0;
+int cycNum = 0;
 uint32_t fileSize;
 bool BatchMode = false;
 char NEMU_SO_PATH[128] = "/home/misuzu/ysyx-workbench/nemu/build/riscv32-nemu-interpreter-so";
