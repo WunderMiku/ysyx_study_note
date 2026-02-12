@@ -2,120 +2,150 @@
 /home/misuzu/ysyx-workbench/am-kernels/kernels/tests/cpu-tests/build/sum-riscv32e-npc_ysyxSoC.elf：     文件格式 elf32-littleriscv
 
 
-Disassembly of section .text:
+Disassembly of section .boot:
 
 30000000 <_start>:
 30000000:	00000413          	li	s0,0
 30000004:	df002117          	auipc	sp,0xdf002
 30000008:	fec10113          	addi	sp,sp,-20 # f001ff0 <_stack_pointer>
-3000000c:	078000ef          	jal	30000084 <_trm_init>
+3000000c:	004000ef          	jal	30000010 <_trm_init>
 
-30000010 <check>:
-30000010:	00050463          	beqz	a0,30000018 <check+0x8>
-30000014:	00008067          	ret
-30000018:	ff410113          	addi	sp,sp,-12
-3000001c:	00100513          	li	a0,1
-30000020:	00112423          	sw	ra,8(sp)
-30000024:	054000ef          	jal	30000078 <halt>
+30000010 <_trm_init>:
+30000010:	ff410113          	addi	sp,sp,-12
+30000014:	00112423          	sw	ra,8(sp)
+30000018:	094000ef          	jal	300000ac <bootloader>
+3000001c:	020000ef          	jal	3000003c <init_uart>
+30000020:	df000517          	auipc	a0,0xdf000
+30000024:	05450513          	addi	a0,a0,84 # f000074 <mainargs>
+30000028:	df000097          	auipc	ra,0xdf000
+3000002c:	ff0080e7          	jalr	-16(ra) # f000018 <main>
+30000030:	00050513          	mv	a0,a0
+30000034:	00100073          	ebreak
+30000038:	0000006f          	j	30000038 <_trm_init+0x28>
 
-30000028 <main>:
-30000028:	ff010113          	addi	sp,sp,-16
-3000002c:	00112623          	sw	ra,12(sp)
-30000030:	00012023          	sw	zero,0(sp)
-30000034:	00100793          	li	a5,1
-30000038:	06500693          	li	a3,101
-3000003c:	00012703          	lw	a4,0(sp)
-30000040:	00f70733          	add	a4,a4,a5
-30000044:	00e12023          	sw	a4,0(sp)
-30000048:	00178793          	addi	a5,a5,1
-3000004c:	fed798e3          	bne	a5,a3,3000003c <main+0x14>
-30000050:	00012503          	lw	a0,0(sp)
-30000054:	fffff7b7          	lui	a5,0xfffff
-30000058:	c4678793          	addi	a5,a5,-954 # ffffec46 <_data_load_end+0xcfffea7e>
-3000005c:	00f50533          	add	a0,a0,a5
-30000060:	00153513          	seqz	a0,a0
-30000064:	fadff0ef          	jal	30000010 <check>
-30000068:	00c12083          	lw	ra,12(sp)
-3000006c:	00000513          	li	a0,0
-30000070:	01010113          	addi	sp,sp,16
-30000074:	00008067          	ret
+3000003c <init_uart>:
+3000003c:	100007b7          	lui	a5,0x10000
+30000040:	f8300693          	li	a3,-125
+30000044:	00d781a3          	sb	a3,3(a5) # 10000003 <_stack_pointer+0xffe013>
+30000048:	10000737          	lui	a4,0x10000
+3000004c:	000700a3          	sb	zero,1(a4) # 10000001 <_stack_pointer+0xffe011>
+30000050:	100006b7          	lui	a3,0x10000
+30000054:	00100613          	li	a2,1
+30000058:	00c68023          	sb	a2,0(a3) # 10000000 <_stack_pointer+0xffe010>
+3000005c:	00300713          	li	a4,3
+30000060:	00e781a3          	sb	a4,3(a5)
+30000064:	00008067          	ret
 
-30000078 <halt>:
-30000078:	00050513          	mv	a0,a0
-3000007c:	00100073          	ebreak
-30000080:	0000006f          	j	30000080 <halt+0x8>
+30000068 <memcpy_boot>:
+30000068:	02060063          	beqz	a2,30000088 <memcpy_boot+0x20>
+3000006c:	00c50633          	add	a2,a0,a2
+30000070:	00050793          	mv	a5,a0
+30000074:	0005c703          	lbu	a4,0(a1)
+30000078:	00178793          	addi	a5,a5,1
+3000007c:	00158593          	addi	a1,a1,1
+30000080:	fee78fa3          	sb	a4,-1(a5)
+30000084:	fef618e3          	bne	a2,a5,30000074 <memcpy_boot+0xc>
+30000088:	00008067          	ret
 
-30000084 <_trm_init>:
-30000084:	ff410113          	addi	sp,sp,-12
-30000088:	00112423          	sw	ra,8(sp)
-3000008c:	04c000ef          	jal	300000d8 <bootloader>
-30000090:	01c000ef          	jal	300000ac <init_uart>
-30000094:	00000517          	auipc	a0,0x0
-30000098:	0f450513          	addi	a0,a0,244 # 30000188 <_etext>
-3000009c:	f8dff0ef          	jal	30000028 <main>
-300000a0:	00050513          	mv	a0,a0
-300000a4:	00100073          	ebreak
-300000a8:	0000006f          	j	300000a8 <_trm_init+0x24>
+3000008c <memset_boot>:
+3000008c:	0ff5f593          	zext.b	a1,a1
+30000090:	00c50733          	add	a4,a0,a2
+30000094:	00050793          	mv	a5,a0
+30000098:	00060863          	beqz	a2,300000a8 <memset_boot+0x1c>
+3000009c:	00178793          	addi	a5,a5,1
+300000a0:	feb78fa3          	sb	a1,-1(a5)
+300000a4:	fef71ce3          	bne	a4,a5,3000009c <memset_boot+0x10>
+300000a8:	00008067          	ret
 
-300000ac <init_uart>:
-300000ac:	100007b7          	lui	a5,0x10000
-300000b0:	f8300693          	li	a3,-125
-300000b4:	00d781a3          	sb	a3,3(a5) # 10000003 <_stack_pointer+0xffe013>
-300000b8:	10000737          	lui	a4,0x10000
-300000bc:	000700a3          	sb	zero,1(a4) # 10000001 <_stack_pointer+0xffe011>
-300000c0:	100006b7          	lui	a3,0x10000
-300000c4:	00100613          	li	a2,1
-300000c8:	00c68023          	sb	a2,0(a3) # 10000000 <_stack_pointer+0xffe010>
-300000cc:	00300713          	li	a4,3
-300000d0:	00e781a3          	sb	a4,3(a5)
-300000d4:	00008067          	ret
-
-300000d8 <bootloader>:
-300000d8:	df000517          	auipc	a0,0xdf000
-300000dc:	f2850513          	addi	a0,a0,-216 # f000000 <_bss_end>
-300000e0:	00000597          	auipc	a1,0x0
-300000e4:	0e858593          	addi	a1,a1,232 # 300001c8 <_data_load_end>
-300000e8:	04b50063          	beq	a0,a1,30000128 <bootloader+0x50>
-300000ec:	df000617          	auipc	a2,0xdf000
-300000f0:	f1460613          	addi	a2,a2,-236 # f000000 <_bss_end>
-300000f4:	ff410113          	addi	sp,sp,-12
-300000f8:	40a60633          	sub	a2,a2,a0
-300000fc:	00112423          	sw	ra,8(sp)
-30000100:	064000ef          	jal	30000164 <memcpy>
-30000104:	00812083          	lw	ra,8(sp)
-30000108:	df000517          	auipc	a0,0xdf000
-3000010c:	ef850513          	addi	a0,a0,-264 # f000000 <_bss_end>
-30000110:	df000617          	auipc	a2,0xdf000
-30000114:	ef060613          	addi	a2,a2,-272 # f000000 <_bss_end>
-30000118:	40a60633          	sub	a2,a2,a0
-3000011c:	00000593          	li	a1,0
-30000120:	00c10113          	addi	sp,sp,12
-30000124:	0200006f          	j	30000144 <memset>
-30000128:	df000517          	auipc	a0,0xdf000
-3000012c:	ed850513          	addi	a0,a0,-296 # f000000 <_bss_end>
-30000130:	df000617          	auipc	a2,0xdf000
-30000134:	ed060613          	addi	a2,a2,-304 # f000000 <_bss_end>
-30000138:	40a60633          	sub	a2,a2,a0
-3000013c:	00000593          	li	a1,0
-30000140:	0040006f          	j	30000144 <memset>
-
-30000144 <memset>:
-30000144:	0ff5f593          	zext.b	a1,a1
-30000148:	00c50733          	add	a4,a0,a2
-3000014c:	00050793          	mv	a5,a0
-30000150:	00060863          	beqz	a2,30000160 <memset+0x1c>
-30000154:	00178793          	addi	a5,a5,1
-30000158:	feb78fa3          	sb	a1,-1(a5)
-3000015c:	fef71ce3          	bne	a4,a5,30000154 <memset+0x10>
-30000160:	00008067          	ret
-
-30000164 <memcpy>:
-30000164:	02060063          	beqz	a2,30000184 <memcpy+0x20>
-30000168:	00c50633          	add	a2,a0,a2
-3000016c:	00050793          	mv	a5,a0
-30000170:	0005c703          	lbu	a4,0(a1)
+300000ac <bootloader>:
+300000ac:	df000717          	auipc	a4,0xdf000
+300000b0:	00870713          	addi	a4,a4,8 # f0000b4 <_bss_end>
+300000b4:	00000797          	auipc	a5,0x0
+300000b8:	18478793          	addi	a5,a5,388 # 30000238 <_data_load_end>
+300000bc:	02f70663          	beq	a4,a5,300000e8 <bootloader+0x3c>
+300000c0:	df000697          	auipc	a3,0xdf000
+300000c4:	ff468693          	addi	a3,a3,-12 # f0000b4 <_bss_end>
+300000c8:	40e68633          	sub	a2,a3,a4
+300000cc:	00e68e63          	beq	a3,a4,300000e8 <bootloader+0x3c>
+300000d0:	00c78633          	add	a2,a5,a2
+300000d4:	0007c683          	lbu	a3,0(a5)
+300000d8:	00178793          	addi	a5,a5,1
+300000dc:	00170713          	addi	a4,a4,1
+300000e0:	fed70fa3          	sb	a3,-1(a4)
+300000e4:	fec798e3          	bne	a5,a2,300000d4 <bootloader+0x28>
+300000e8:	df000717          	auipc	a4,0xdf000
+300000ec:	f8c70713          	addi	a4,a4,-116 # f000074 <mainargs>
+300000f0:	00000797          	auipc	a5,0x0
+300000f4:	10878793          	addi	a5,a5,264 # 300001f8 <_rodata_load_start>
+300000f8:	02f70663          	beq	a4,a5,30000124 <bootloader+0x78>
+300000fc:	df000697          	auipc	a3,0xdf000
+30000100:	fb868693          	addi	a3,a3,-72 # f0000b4 <_bss_end>
+30000104:	40e68633          	sub	a2,a3,a4
+30000108:	00e68e63          	beq	a3,a4,30000124 <bootloader+0x78>
+3000010c:	00c78633          	add	a2,a5,a2
+30000110:	0007c683          	lbu	a3,0(a5)
+30000114:	00178793          	addi	a5,a5,1
+30000118:	00170713          	addi	a4,a4,1
+3000011c:	fed70fa3          	sb	a3,-1(a4)
+30000120:	fec798e3          	bne	a5,a2,30000110 <bootloader+0x64>
+30000124:	df000717          	auipc	a4,0xdf000
+30000128:	edc70713          	addi	a4,a4,-292 # f000000 <check>
+3000012c:	00000797          	auipc	a5,0x0
+30000130:	05878793          	addi	a5,a5,88 # 30000184 <_boot_end>
+30000134:	02f70663          	beq	a4,a5,30000160 <bootloader+0xb4>
+30000138:	df000697          	auipc	a3,0xdf000
+3000013c:	f3c68693          	addi	a3,a3,-196 # f000074 <mainargs>
+30000140:	40e68633          	sub	a2,a3,a4
+30000144:	00e68e63          	beq	a3,a4,30000160 <bootloader+0xb4>
+30000148:	00c78633          	add	a2,a5,a2
+3000014c:	0007c683          	lbu	a3,0(a5)
+30000150:	00178793          	addi	a5,a5,1
+30000154:	00170713          	addi	a4,a4,1
+30000158:	fed70fa3          	sb	a3,-1(a4)
+3000015c:	fec798e3          	bne	a5,a2,3000014c <bootloader+0xa0>
+30000160:	df000717          	auipc	a4,0xdf000
+30000164:	f5470713          	addi	a4,a4,-172 # f0000b4 <_bss_end>
+30000168:	df000797          	auipc	a5,0xdf000
+3000016c:	f4c78793          	addi	a5,a5,-180 # f0000b4 <_bss_end>
+30000170:	00f70863          	beq	a4,a5,30000180 <bootloader+0xd4>
 30000174:	00178793          	addi	a5,a5,1
-30000178:	00158593          	addi	a1,a1,1
-3000017c:	fee78fa3          	sb	a4,-1(a5)
-30000180:	fef618e3          	bne	a2,a5,30000170 <memcpy+0xc>
-30000184:	00008067          	ret
+30000178:	fe078fa3          	sb	zero,-1(a5)
+3000017c:	fee79ce3          	bne	a5,a4,30000174 <bootloader+0xc8>
+30000180:	00008067          	ret
+
+Disassembly of section .text:
+
+0f000000 <check>:
+ f000000:	00050463          	beqz	a0,f000008 <check+0x8>
+ f000004:	00008067          	ret
+ f000008:	ff410113          	addi	sp,sp,-12
+ f00000c:	00100513          	li	a0,1
+ f000010:	00112423          	sw	ra,8(sp)
+ f000014:	054000ef          	jal	f000068 <halt>
+
+0f000018 <main>:
+ f000018:	ff010113          	addi	sp,sp,-16
+ f00001c:	00112623          	sw	ra,12(sp)
+ f000020:	00012023          	sw	zero,0(sp)
+ f000024:	00100793          	li	a5,1
+ f000028:	06500693          	li	a3,101
+ f00002c:	00012703          	lw	a4,0(sp)
+ f000030:	00f70733          	add	a4,a4,a5
+ f000034:	00e12023          	sw	a4,0(sp)
+ f000038:	00178793          	addi	a5,a5,1
+ f00003c:	fed798e3          	bne	a5,a3,f00002c <main+0x14>
+ f000040:	00012503          	lw	a0,0(sp)
+ f000044:	fffff7b7          	lui	a5,0xfffff
+ f000048:	c4678793          	addi	a5,a5,-954 # ffffec46 <_heap_end+0x7fbfec46>
+ f00004c:	00f50533          	add	a0,a0,a5
+ f000050:	00153513          	seqz	a0,a0
+ f000054:	fadff0ef          	jal	f000000 <check>
+ f000058:	00c12083          	lw	ra,12(sp)
+ f00005c:	00000513          	li	a0,0
+ f000060:	01010113          	addi	sp,sp,16
+ f000064:	00008067          	ret
+
+0f000068 <halt>:
+ f000068:	00050513          	mv	a0,a0
+ f00006c:	00100073          	ebreak
+ f000070:	0000006f          	j	f000070 <halt+0x8>

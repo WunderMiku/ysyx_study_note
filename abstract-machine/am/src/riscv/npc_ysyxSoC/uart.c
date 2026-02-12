@@ -10,7 +10,7 @@
 #define DIV_LSB_ADDR SERIAL_PORT
 #define DIV_MSB_ADDR SERIAL_PORT + 1
 
-
+__attribute__((section(".boot")))
 void init_uart() {
 	//allow access to divisor latch
 	//uint8_t lcr = inb(LCR_ADDR);

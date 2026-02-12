@@ -121,13 +121,17 @@ void cpuExec(uint32_t n) {
 
 		if(dut->inst_done){  // 每条指令结束后
 #ifdef Ftrace_enable
+#ifdef InstLog_enable
 			funget_detect(before_pc, dut->out_pc, npcState.inst); 
+#endif
 #endif
 
 #ifdef Watchpoint_enable
 			check_all_using_wp(); // 基于上一次指令执行结果进行检查
 #endif
+#ifdef InstLog_enable
 			setInstLog(n, before_pc); // 写入指令日志
+#endif
 		}
 	}
 	return;

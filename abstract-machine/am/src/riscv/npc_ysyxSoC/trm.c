@@ -49,8 +49,7 @@ extern char _bss_start[], _bss_end[];
 
 void init_uart();
 void bootloader();
-#define FLASH_BASE 0x30000000
-
+__attribute__((section(".boot")))
 void _trm_init() {
   // print_msg(); // For difftest: OFF needed
   bootloader();

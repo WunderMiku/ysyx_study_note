@@ -16,12 +16,13 @@
 #define RISCV_GPR_NUM 32
 #define CSR_COUNT 4
 
-#define MAX_SHOW_INST 200
+#define MAX_SHOW_INST 2000
 
 // #define Ftrace_enable
 #define Watchpoint_enable
 // #define Difftest_enable
 // #define Mtrace_enable
+// #define InstLog_enable
 
 #define FLASH_ROM
 

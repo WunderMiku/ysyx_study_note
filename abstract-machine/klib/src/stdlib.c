@@ -45,6 +45,7 @@ void *malloc(size_t size) {
   void *ret = addr;
 
   addr = (void *)ALIGN_UP((uintptr_t)addr + size, alignof(max_align_t));
+  assert(addr <= heap.end);
   return ret;
 #endif
   return NULL;
